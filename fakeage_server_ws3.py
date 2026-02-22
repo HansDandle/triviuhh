@@ -24,6 +24,7 @@ Devnotes:
 import argparse
 import http.server
 import json
+import random
 import signal
 import socket
 import sys
@@ -170,10 +171,10 @@ class Game(metaclass=Singleton):
         self.t = time.time()
 
         # game config:
-        self.questionsperround = 15  # number of question in a game
-        self.scoretime = 10  # seconds between each scoring view
-        self.lietime = 120  # time [s] each player has to come up with a lie
-        self.choicetime = 30  # players have numlies * choicetime seconds to select and like answers
+        self.questionsperround = 15  # number of questions in a game
+        self.scoretime = 20  # seconds to show the scoring reveal
+        self.lietime = 60   # seconds players have to submit a lie
+        self.choicetime = 30  # seconds players have to pick an answer
 
     def time(self):
         self.t = time.time()
@@ -240,6 +241,16 @@ class Game(metaclass=Singleton):
             "author": author,
             "flavor": flavor,
             "currentlie": self.currentlie,
+            "phase_started": self.t,
+            "phase_duration": {
+                'pregame': 0,
+                'lietome': self.lietime,
+                'lieselection': self.choicetime,
+                'scoring': self.scoretime,
+                'finalscoring': self.scoretime * 2,
+            }.get(self.state, 0),
+            "round": self.roundcount,
+            "total_rounds": self.questionsperround,
         }
         score_sorted_player_list = sorted(self.players.values(),
                                           key=lambda p: (-p.score, p.name))
@@ -273,12 +284,23 @@ class Game(metaclass=Singleton):
                 viewerclient.sendMessage(ujsonviewinfo)
 
     def do_scoring(self):
-        print('Scoring called')
-        if not self.scoreorder:  # done, advance state
-            print('Done with scores, advancing automatically to finalscoring')
-            self.state = 'finalscoring'
-        else:
-            self.currentlie = self.scoreorder.pop(0)[0]
+        """Calculate scores then transition to scoring reveal."""
+        print('Moving to scoring reveal — calculating scores')
+        # Scores are deferred until now so the scoreboard doesn't update during voting
+        for choosername, choice in self.cur_question.choices.items():
+            chooser = self.get_player_by_name(choosername)
+            if choice == self.cur_question.answer:
+                if chooser:
+                    chooser.score += 1
+                print(f'Player {choosername} guessed correctly')
+            for liername, lie in self.cur_question.lies.items():
+                if lie == choice and liername != choosername:
+                    lierplayer = self.get_player_by_name(liername)
+                    if lierplayer:
+                        lierplayer.score += 1
+                    print(f'Lier {liername} fooled {choosername}')
+        self.scoreorder = self.cur_question.get_scoreorder()
+        self.currentlie = None  # show all answers at once
         asyncio.create_task(update_view())
         time.sleep(0.1)
         self.time()
@@ -300,19 +322,8 @@ class Game(metaclass=Singleton):
             return False
 
         self.cur_question.choices[player.name] = selectedlie
-
-        if selectedlie == self.cur_question.answer:
-            player.score += 1
-            print(f'Player {player.name} got the answer '
-                  f'({self.cur_question.answer}) correctly ({selectedlie})')
-
-        for liername, lie in self.cur_question.lies.items():  # who chose which lie
-            if lie == selectedlie and liername != player.name:
-                lierplayer = self.get_player_by_name(liername)
-                if lierplayer:
-                    lierplayer.score += 1
-                print(f'Lier {liername} with lie {lie} got chosen by {player.name}')
-        self.scoreorder = self.cur_question.get_scoreorder()
+        # Scoring is deferred to do_scoring() so scores stay hidden during voting
+        print(f'Player {player.name} chose: {selectedlie}')
         return True
 
     def like_recieved(self, client, likes):
@@ -343,16 +354,37 @@ class Game(metaclass=Singleton):
         if questionsfilename != '':
             self.questionsfilename = questionsfilename
         with open(self.questionsfilename, 'r', encoding='utf-8') as questionsfile:
-            for line in questionsfile.readlines():
-                line = line.strip().split('\t')
-                print(line)
-                if len(line) >= 2:
-                    question = Question(line[0], unidecode_allcaps_shorten32(line[1]))
-                    if len(line) >=3:
-                        question.author = line[2]
-                    if len(line) >=4:
-                        question.flavor = line[3]
-                    self.questions.append(question)
+            # Detect CSV (has header with Question/Answer) or fall back to TSV
+            first_line = questionsfile.readline()
+            questionsfile.seek(0)
+            is_csv = self.questionsfilename.lower().endswith('.csv') or (
+                ',' in first_line and 'Question' in first_line)
+            if is_csv:
+                import csv
+                reader = csv.DictReader(questionsfile)
+                for row in reader:
+                    q = row.get('Question') or row.get('question')
+                    a = row.get('Answer') or row.get('answer')
+                    if q and a:
+                        question = Question(q, unidecode_allcaps_shorten32(a))
+                        # optional fields: try Category/Sub_Category as author or flavor
+                        if row.get('Category'):
+                            question.author = row.get('Category')
+                        if row.get('Sub_Category'):
+                            question.flavor = row.get('Sub_Category')
+                        self.questions.append(question)
+            else:
+                for line in questionsfile.readlines():
+                    line = line.strip().split('\t')
+                    print(line)
+                    if len(line) >= 2:
+                        question = Question(line[0], unidecode_allcaps_shorten32(line[1]))
+                        if len(line) >=3:
+                            question.author = line[2]
+                        if len(line) >=4:
+                            question.flavor = line[3]
+                        self.questions.append(question)
+        random.shuffle(self.questions)
         num_questions = len(self.questions)
         self.questionsperround = min(self.questionsperround, num_questions)
         print(f'Loaded {num_questions} questions')
@@ -396,45 +428,43 @@ class Game(metaclass=Singleton):
             return "all"
 
     def _handle_lietome(self):
-        # total of game.lietime seconds to submit a lie
-        # advance automatically if everyone has submitted a lie and liked an answer!
-        # to temporarily disable timing use:
-        # if time.time() - game.t > game.lietime or len(game.lies) == len(game.players):
-        if len(self.cur_question.lies) == len(self.players):
-            print('Everyone has submitted their lie, advancing to lie selection')
+        # Advance after lietime (60s) OR as soon as every player has submitted
+        all_submitted = len(self.players) > 0 and len(self.cur_question.lies) == len(self.players)
+        times_up = (time.time() - self.t) >= self.lietime
+        if times_up or all_submitted:
+            print('Advancing to lie selection (timer up or all submitted)')
             self.time()
             self.state = 'lieselection'
-            #asyncio.run(update_view())
             return "all"
 
     def _handle_lieselection(self):
-        # numlies*5 + 10 seconds to choose lies and like stuff
-        # OR everyone has submitted a choice
-        times_up = (time.time() - self.t) > ((len(self.cur_question.lies) + 1) * self.choicetime)
-        everyone_done = len(self.cur_question.likes) == len(self.players)
-        if self.autoadvance and times_up or everyone_done:
-            print('Time to choose answers lies is up, advancing to scoring')
-            self.time()
-            self.do_scoring()
+        # Advance when all players have voted OR timer runs out
+        all_voted = len(self.players) > 0 and len(self.cur_question.choices) >= len(self.players)
+        times_up = (time.time() - self.t) >= self.choicetime
+        if times_up or all_voted:
+            print('Moving to scoring reveal (all voted or time up)')
             self.state = 'scoring'
-            self.t -= self.scoretime  # rewind time to get instant scoring round
-            #asyncio.run(update_view())
+            self.do_scoring()
             return "all"
 
     def _handle_scoring(self):
-        times_up = (time.time() - self.t) > self.scoretime
-        if self.autoadvance and times_up:
-            return self.do_scoring()
+        # Show full reveal for scoretime (20s) then advance to next round
+        if (time.time() - self.t) >= self.scoretime:
+            if self.roundcount >= self.questionsperround:
+                self.state = 'finalscoring'
+            else:
+                self.forcestart = True
+                self.state = 'pregame'
+            self.time()
+            return "all"
 
     def _handle_finalscoring(self):
-        times_up = (time.time() - self.t) > (2 * self.scoretime)
-        if self.autoadvance and times_up:
-            self.forcestart = True
-            if self.roundcount >= self.questionsperround:
-                self.forcestart = False
-                self.reset()
+        # Hold final scoreboard for 2*scoretime (40s) then loop
+        if (time.time() - self.t) >= (2 * self.scoretime):
+            self.reset()
             self.state = 'pregame'
             self.time()
+            return "all"
 
 
 def unidecode_allcaps_shorten32(string):
@@ -515,23 +545,24 @@ class WSFakeageServer(WebSocket):
 
     def _handle_cmd_advancestate(self, parameter):
         if game.state == 'pregame':
-            print('Force starting through viewer from', game.state)
-            game.time()
             game.forcestart = True
-        elif game.state == "lieselection":
+        elif game.state == 'lietome':
+            game.state = 'lieselection'
+            game.time()
+        elif game.state == 'lieselection':
             game.state = 'scoring'
             game.do_scoring()
         elif game.state == 'scoring':
-            game.do_scoring()
-        else:
-            idx = (game.states.index(game.state) + 1) % len(game.states)
-            newstate = game.states[max(0, idx)]
-            print(f'Advancing state through viewer: from {game.state} to {newstate}')
-            if newstate == 'pregame':
+            if game.roundcount >= game.questionsperround:
+                game.state = 'finalscoring'
+            else:
                 game.forcestart = True
+                game.state = 'pregame'
             game.time()
-            game.state = newstate
-
+        elif game.state == 'finalscoring':
+            game.reset()
+            game.state = 'pregame'
+            game.time()
         asyncio.run(update_view())
 
     def handleConnected(self):
@@ -605,22 +636,27 @@ async def handleClient(websocket):
                     
                 elif command == 'advancestate':
                     if game.state == 'pregame':
-                        print('Force starting through viewer from', game.state)
-                        game.time()
                         game.forcestart = True
-                    elif game.state == "lieselection":
+                    elif game.state == 'lietome':
+                        game.state = 'lieselection'
+                        game.time()
+                        update = 'all'
+                    elif game.state == 'lieselection':
                         game.state = 'scoring'
                         game.do_scoring()
+                        update = 'all'
                     elif game.state == 'scoring':
-                        game.do_scoring()
-                    else:
-                        idx = (game.states.index(game.state) + 1) % len(game.states)
-                        newstate = game.states[max(0, idx)]
-                        print(f'Advancing state through viewer: from {game.state} to {newstate}')
-                        if newstate == 'pregame':
+                        if game.roundcount >= game.questionsperround:
+                            game.state = 'finalscoring'
+                        else:
                             game.forcestart = True
+                            game.state = 'pregame'
                         game.time()
-                        game.state = newstate
+                        update = 'all'
+                    elif game.state == 'finalscoring':
+                        game.reset()
+                        game.state = 'pregame'
+                        game.time()
                         update = 'all'
         
                 elif command == 'scream':
@@ -711,7 +747,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--questions",
         type=str,
-        default="questions.tsv",
+        default="questions2.csv",
         help="A tab-separated text file with question[tab]answer on each line",
     )
     parser.add_argument(

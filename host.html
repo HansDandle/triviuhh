@@ -1,0 +1,353 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fakeage  Host</title>
+  <script src="/websocket_ip.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --text:    #e6edf3;
+      --muted:   #8b949e;
+      --green:   #3fb950;
+      --red:     #f85149;
+      --orange:  #f0883e;
+      --blue:    #58a6ff;
+      --yellow:  #e3b341;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    /* Top bar */
+    #topbar {
+      background: var(--surface); border-bottom: 2px solid var(--border);
+      padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+    }
+    #topbar h1 { font-size: 1.4rem; color: var(--blue); }
+    #round-display { font-size: 0.9rem; color: var(--muted); }
+    #phase-label {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;
+      background: var(--border); padding: 3px 14px; border-radius: 20px; color: var(--muted);
+    }
+    #spacer { flex: 1; }
+    #timer-num {
+      font-size: 2.2rem; font-weight: bold; color: var(--orange);
+      min-width: 60px; text-align: right; font-variant-numeric: tabular-nums;
+    }
+    /* Progress bar */
+    #progress-wrap { height: 6px; background: var(--border); flex-shrink: 0; }
+    #progress-bar  { height: 100%; background: var(--blue); width: 100%; transition: width 0.25s linear, background 0.5s; }
+    /* Main */
+    #main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    /* Sidebar */
+    #sidebar {
+      width: 210px; flex-shrink: 0; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      overflow-y: auto; padding: 12px; gap: 10px;
+    }
+    #qr-img { width: 100%; border-radius: 6px; background: #fff; padding: 4px; }
+    #join-info { font-size: 0.72rem; color: var(--muted); text-align: center; word-break: break-all; }
+    #players-heading { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    #player-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .player-row {
+      background: #21262d; border-radius: 6px; padding: 5px 8px;
+      display: flex; align-items: center; gap: 6px; font-size: 0.85rem;
+    }
+    .p-name  { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .p-score { color: var(--orange); font-weight: bold; }
+    .p-status { font-size: 1rem; flex-shrink: 0; }
+    /* Content */
+    #content {
+      flex: 1; padding: 20px 24px; display: flex; flex-direction: column;
+      gap: 14px; overflow-y: auto; min-width: 0;
+    }
+    /* Pregame */
+    .pregame-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; flex: 1; gap: 18px; text-align: center;
+    }
+    .pregame-wrap h2 { font-size: 2.2rem; color: var(--blue); }
+    .pregame-wrap p  { color: var(--muted); font-size: 1rem; }
+    .pregame-count   { font-size: 1.4rem; font-weight: bold; color: var(--text); }
+    /* Phase heading */
+    .phase-heading {
+      font-size: 1rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 2px; color: var(--muted);
+    }
+    /* Question */
+    .question-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 22px; font-size: 1.5rem; line-height: 1.5;
+    }
+    /* Submit grid (lietome) */
+    .submit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .submit-card {
+      background: #21262d; border-radius: 8px; padding: 9px 12px;
+      display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
+      border: 1px solid var(--border);
+    }
+    .submit-card.done { border-color: var(--green); }
+    /* Answer grid */
+    .answer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+    .answer-card { background: #21262d; border: 2px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+    .card-num   { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+    .card-label { font-size: 1.15rem; font-weight: 700; }
+    .card-sub   { font-size: 0.78rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .answer-card.truth { background: #152b1a; border-color: var(--green); }
+    .answer-card.truth .card-label { color: var(--green); }
+    .answer-card.lie   { background: #2a1414; border-color: #6e3030; }
+    .answer-card.lie   .card-label { color: var(--red); }
+    /* Final scores */
+    .score-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
+    .score-table th {
+      text-align: left; padding: 8px 14px; background: #21262d; color: var(--muted);
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .score-table td { padding: 11px 14px; border-bottom: 1px solid #21262d; }
+    .score-table .winner td { background: #2a2000; font-size: 1.1rem; }
+    /* Buttons */
+    .btn { border: none; border-radius: 8px; cursor: pointer; font-weight: 700; transition: filter .15s; }
+    .btn:hover { filter: brightness(1.18); }
+    .btn-start { background: #238636; color: #fff; font-size: 1.4rem; padding: 16px 52px; }
+    .btn-skip  { background: #d29922; color: #fff; font-size: 1rem; padding: 11px 28px; }
+    .btn-need  { background: #21262d; color: var(--muted); font-size: 1rem; padding: 11px 28px; cursor: default; }
+    /* Footer */
+    #footer {
+      background: var(--surface); border-top: 2px solid var(--border);
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    #status-text { flex: 1; color: var(--muted); font-size: 0.85rem; }
+    #cat-text    { color: var(--muted); font-size: 0.8rem; font-style: italic; }
+    .allgood { color: var(--green); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <h1> Fakeage</h1>
+    <span id="round-display"></span>
+    <span id="phase-label">Lobby</span>
+    <div id="spacer"></div>
+    <span id="timer-num"></span>
+  </div>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+
+  <div id="main">
+    <div id="sidebar">
+      <img id="qr-img" src="qrcode.png" alt="QR" />
+      <div id="join-info">connecting</div>
+      <div id="players-heading">Players (<span id="player-count">0</span>)</div>
+      <ul id="player-list"></ul>
+    </div>
+    <div id="content"></div>
+  </div>
+
+  <div id="footer">
+    <span id="status-text">Not connected</span>
+    <span id="cat-text"></span>
+    <button class="btn btn-skip" onclick="advanceState()"> Skip</button>
+  </div>
+
+  <script>
+    var ws, timerInterval = null;
+
+    function init() {
+      var wsUrl   = get_websocket_ip();
+      var host    = wsUrl.split('/')[2].split(':')[0];
+      var gameUrl = 'http://' + host + ':8000';
+      document.getElementById('join-info').textContent = gameUrl;
+      ws = new WebSocket(wsUrl);
+      ws.onopen    = function() { ws.send('view:host'); setStatus('Connected  waiting for players'); };
+      ws.onclose   = function() { setStatus('Disconnected  reload to reconnect'); };
+      ws.onerror   = function() { setStatus('WebSocket error'); };
+      ws.onmessage = function(evt) {
+        if (evt.data.startsWith('Echo')) return;
+        var g; try { g = JSON.parse(evt.data); } catch(e) { return; }
+        render(g);
+      };
+    }
+
+    function render(g) {
+      document.getElementById('round-display').textContent =
+        g.round > 0 ? 'Round ' + g.round + ' / ' + g.total_rounds : '';
+      var labels = { pregame:'Lobby', lietome:'Enter your lie', lieselection:'Pick the truth', scoring:'Reveal', finalscoring:'Final scores' };
+      document.getElementById('phase-label').textContent = labels[g.state] || g.state;
+
+      var elapsed   = Date.now() / 1000 - g.phase_started;
+      var remaining = Math.max(0, g.phase_duration - elapsed);
+      if (g.phase_duration > 0) startCountdown(remaining, g.phase_duration);
+      else clearCountdown();
+
+      var cat = [g.author, g.flavor].filter(Boolean).join('  ');
+      document.getElementById('cat-text').textContent = cat;
+      renderPlayers(g);
+
+      if      (g.state === 'pregame')        renderPregame(g);
+      else if (g.state === 'lietome')        renderLieToMe(g);
+      else if (g.state === 'lieselection')   renderLieSelection(g);
+      else if (g.state === 'scoring')        renderScoring(g);
+      else if (g.state === 'finalscoring')   renderFinalScoring(g);
+    }
+
+    function renderPregame(g) {
+      var n = g.players.length;
+      setStatus(n === 0 ? 'Waiting for players to join' : n + ' player' + (n !== 1 ? 's' : '') + ' ready');
+      var btn = n >= 2
+        ? '<button class="btn btn-start" onclick="forceStart()"> START GAME</button>'
+        : '<button class="btn btn-need" disabled>Need at least 2 players</button>';
+      document.getElementById('content').innerHTML =
+        '<div class="pregame-wrap">' +
+        '<h2> Welcome to Fakeage!</h2>' +
+        '<p>Scan the QR code or visit <b>' + esc(document.getElementById('join-info').textContent) + '</b></p>' +
+        '<p class="pregame-count">' + n + ' player' + (n !== 1 ? 's' : '') + ' ready</p>' +
+        btn + '</div>';
+    }
+
+    function renderLieToMe(g) {
+      var done  = g.players.filter(function(p){ return p.lie != null; }).length;
+      var total = g.players.length;
+      setStatus('Lies submitted: ' + done + ' / ' + total);
+      var cards = g.players.map(function(p) {
+        return '<div class="submit-card ' + (p.lie != null ? 'done' : '') + '">' +
+          '<span>' + (p.lie != null ? '' : '') + '</span><span>' + esc(p.name) + '</span></div>';
+      }).join('');
+      var allIn = done === total && total > 0
+        ? '<p class="allgood"> All lies in!</p>' : '';
+      document.getElementById('content').innerHTML =
+        '<div class="phase-heading"> Round ' + g.round + '  Enter your lie!</div>' +
+        '<div class="question-box">' + g.question + '</div>' +
+        '<div class="submit-grid">' + cards + '</div>' + allIn;
+    }
+
+    function renderLieSelection(g) {
+      var voted = g.players.filter(function(p){ return p.choice != null; }).length;
+      var total = g.players.length;
+      setStatus('Votes in: ' + voted + ' / ' + total);
+      var answers = collectAnswers(g);
+      var cards = answers.map(function(ans, i) {
+        return '<div class="answer-card"><div class="card-num">Option ' + (i+1) + '</div>' +
+          '<div class="card-label">' + esc(ans) + '</div></div>';
+      }).join('');
+      document.getElementById('content').innerHTML =
+        '<div class="phase-heading"> Pick the real answer!</div>' +
+        '<div class="question-box">' + g.question + '</div>' +
+        '<div class="answer-grid">' + cards + '</div>' +
+        '<p style="color:var(--muted);font-size:.85rem;">' + voted + '/' + total + ' players voted</p>';
+    }
+
+    function renderScoring(g) {
+      var timerText = document.getElementById('timer-num').textContent;
+      setStatus('Revealing answers  next round in ' + timerText);
+      var answers = collectAnswers(g);
+      var cards = answers.map(function(ans, i) {
+        var isTruth  = ans === g.answer;
+        var lier     = findLier(g, ans);
+        var chosen   = g.players.filter(function(p){ return p.choice === ans; }).map(function(p){ return p.name; });
+        var cls = isTruth ? 'truth' : 'lie';
+        var sub = '';
+        if (isTruth) {
+          sub = ' Correct answer';
+          sub += chosen.length ? '  guessed by: <b>' + esc(chosen.join(', ')) + '</b>' : '  <b>nobody guessed it!</b>';
+        } else {
+          if (lier)          sub  = 'Lie by: <b>' + esc(lier) + '</b>';
+          if (chosen.length) sub += '  fooled: ' + esc(chosen.join(', '));
+        }
+        return '<div class="answer-card ' + cls + '">' +
+          '<div class="card-num">Option ' + (i+1) + '</div>' +
+          '<div class="card-label">' + esc(ans) + '</div>' +
+          '<div class="card-sub">' + sub + '</div></div>';
+      }).join('');
+      document.getElementById('content').innerHTML =
+        '<div class="phase-heading"> The Truth is Revealed!</div>' +
+        '<div class="question-box">' + g.question + '</div>' +
+        '<div class="answer-grid">' + cards + '</div>';
+    }
+
+    function renderFinalScoring(g) {
+      setStatus('Game over! New game starting soon');
+      var rows = g.players.map(function(p, i) {
+        var medal = ['','',''][i] || (i+1) + '.';
+        return '<tr' + (i === 0 ? ' class="winner"' : '') + '>' +
+          '<td>' + medal + '</td><td>' + esc(p.name) + '</td>' +
+          '<td><i>' + esc(p.lie || '') + '</i></td>' +
+          '<td><b>' + p.score + '</b></td><td>' + p.likecount + '</td></tr>';
+      }).join('');
+      document.getElementById('content').innerHTML =
+        '<div class="phase-heading"> Final Scores</div>' +
+        '<table class="score-table"><thead><tr>' +
+        '<th>#</th><th>Player</th><th>Best lie</th><th> Score</th><th> Likes</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    function renderPlayers(g) {
+      document.getElementById('player-count').textContent = g.players.length;
+      var list = document.getElementById('player-list');
+      list.innerHTML = '';
+      g.players.forEach(function(p) {
+        var icon = '';
+        if      (g.state === 'pregame')        icon = '';
+        else if (g.state === 'lietome')        icon = p.lie    != null ? '' : '';
+        else if (g.state === 'lieselection')   icon = p.choice != null ? '' : '';
+        var li = document.createElement('li');
+        li.className = 'player-row';
+        li.innerHTML = '<span class="p-name">' + esc(p.name) + '</span>' +
+          '<span class="p-score">' + p.score + 'pt</span>' +
+          '<span class="p-status">' + icon + '</span>';
+        list.appendChild(li);
+      });
+    }
+
+    function collectAnswers(g) {
+      var set = {}; set[g.answer] = true;
+      g.players.forEach(function(p){ if (p.lie) set[p.lie] = true; });
+      return Object.keys(set).sort();
+    }
+
+    function findLier(g, lie) {
+      var f = g.players.filter(function(p){ return p.lie === lie; });
+      return f.length ? f[0].name : null;
+    }
+
+    function setStatus(msg) { document.getElementById('status-text').textContent = msg; }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function forceStart()   { ws.send('forcestart:host'); }
+    function advanceState() { ws.send('advancestate:0'); }
+
+    function startCountdown(remaining, total) {
+      clearInterval(timerInterval);
+      var val = remaining;
+      var el  = document.getElementById('timer-num');
+      var bar = document.getElementById('progress-bar');
+      function tick() {
+        var secs = Math.ceil(val);
+        el.textContent       = secs > 0 ? secs + 's' : '';
+        var pct = total > 0 ? (val / total) * 100 : 0;
+        bar.style.width      = pct + '%';
+        bar.style.background = pct > 40 ? 'var(--blue)' : pct > 15 ? 'var(--orange)' : 'var(--red)';
+        val -= 0.25;
+        if (val < -1) clearInterval(timerInterval);
+      }
+      tick();
+      timerInterval = setInterval(tick, 250);
+    }
+
+    function clearCountdown() {
+      clearInterval(timerInterval);
+      document.getElementById('timer-num').textContent = '';
+      document.getElementById('progress-bar').style.width = '0%';
+    }
+
+    init();
+  </script>
+</body>
+</html>

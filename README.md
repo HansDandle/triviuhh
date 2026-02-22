@@ -2,42 +2,44 @@
 
 ### How to play
 
-Add your questions (tab separated questions and answers) to [questions.tsv](questions.tsv).  
-Launch fakeage_server.py, direct browsers to http://[my.local.ip]:8000/  
-Have one browser tab as the 'viewer' on the tv/projector/main display. Click the >NEXT button on the footer bar to advance through lying-lie selection-scoring rounds.   
+1. Launch the server (defaults to `questions2.csv`, shuffled randomly each game):  
+   ```
+   python fakeage_server.py
+   ```
+2. **Host/Viewer** — open `http://[server-ip]:8000/host.html` on the TV/projector.  
+   The host dashboard shows the QR code, player list, game state, and a **▶ START GAME** / **⏭ Next** button.
+3. **Players** — scan the QR code or visit `http://[server-ip]:8000/` on their phones, enter a name, and tap **Play!**
+4. The host presses **▶ START GAME** when everyone has joined, then **⏭ Next** to advance through rounds.
 
-All input from players will be butchered to remove all non [A-Z] [0-9] characters to preserve the developer's sanity, and converted to UPPERCASE.  
-Supports players rejoining with the same names, supports liking of submissions.   
-1 point for getting the correct answer, 1 point for fooling others.   
+**Scoring:** 1 point for guessing the correct answer · 1 point each time another player picks your lie  
+All answers are normalised to uppercase ASCII.
 
-### How to add questions
 
-Questions are in a tab-separated format, one line per question with the fields [question]\t[answer]\t[author (optional)]\n
+### Questions format
 
-#### Image or Video questions (NEW!)
-You can add an image to any question by adding the following html tag (without backtick quotes!) to the question, and adding the image to the /img folder:
+The server auto-detects the file type on the `--questions` flag (default: `questions2.csv`).
 
-What is the namg of this character? `<br/><img src="img/myimage.jpg">` \t ANSWER
+**CSV** (like `questions2.csv`): must have a header row with at least `Question` and `Answer` columns.  
+Optional columns `Category` and `Sub_Category` are shown on the host dashboard as context.
 
-Video is similar, like so:
+**TSV** (like `questions.tsv`): tab-separated, one question per line:  
+`[question]\t[answer]\t[author (optional)]\t[flavor (optional)]`
 
-Is this a Video? `<br/><video controls width="640"><source src="img/intro_movie.webm" type="video/webm">  Sorry, your browser doesn't support embedded videos. </video>`\tYES
+You can mix HTML in TSV questions for images/video:
 
+```
+What character is this? <br/><img src="img/myimage.jpg">	ANSWER
+```
 
 ### To build or dev
 
-Two main components are 
+Two main components:
+- [fakeage_server.py](fakeage_server.py) — Python WebSocket + HTTP server
+- [index.html](index.html) — Player UI
+- [host.html](host.html) — **Host/viewer dashboard** (dark-mode, big-screen-friendly)
 
-* [fakeage_server.py](fakeage_server.py), which contains the server code, and 
-* [index.html](index.html), which contains the viewer/player javascript stuff. 
-
-Reel in horror at the spaghetti code in the python side, get further enraged by the code on the browser side. 
-
-Requires a few python libs, see [requirements.txt](requirements.txt).
-
-To run a server, launch fakeage_server.py
-
-Standalone exe built with `pyinstaller --onefile fakeage_server.py` (might be out of date).
+Install dependencies: `pip install -r requirements.txt`  
+Standalone exe: `pyinstaller --onefile fakeage_server.py`
 
 Have fun!
 
