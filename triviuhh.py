@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-triviuhh.py — Fakeage production server
+triviuhh.py — Triviuhh production server
 HTTP + WebSocket on a single port via aiohttp.
 
 Deploy to Render.com (or Railway / Fly.io):
@@ -545,7 +545,7 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f'Fakeage running -> {http_url}')
+    print(f'Triviuhh running -> {http_url}')
     await asyncio.Future()  # run forever
 
 

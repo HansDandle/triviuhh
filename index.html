@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-	<title>Fakeage Player</title>
+	<title>Triviuhh</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link href="/src/css/jquery.mobile-1.4.5.min.css" rel="stylesheet" />
 	<script src="/websocket_ip.js"></script>
@@ -121,9 +121,7 @@ function init(){
 	console.log("Websocket IP:",ipValue);
 	showonly('#logindiv');
 
-	document.getElementById('pageheader').firstElementChild.innerHTML= "Fakeage @ "+gameaddress;
-
-	console.log("Latize test:",latinize("Búzafűlé	ÜÖŰPÁÉÉÍÍÚÚŐŐ\tcsicskalangos CleanUp-String_tesztelÉs"));
+	document.getElementById('pageheader').firstElementChild.innerHTML= "Triviuhh @ "+gameaddress;
 	connection = new WebSocket(ipValue); //handle failure
 	connection.onclose = function(evt) { onClose(evt) };
 	connection.onerror = function(evt) { onError(evt) };
@@ -442,7 +440,7 @@ function updateTimerDisplay() {
 <body>
 	<div data-role="page" id="page1">
 	<div id="pageheader" data-role="header">
-		<h1>Fakeage</h1>
+		<h1><img src="/img/logosmall.jpg" alt="Triviuhh" style="max-height:34px;vertical-align:middle;"></h1>
 	</div>
 	<div id="logindiv">
 		<h1>Enter your name to play!</h1>
@@ -495,7 +493,7 @@ function updateTimerDisplay() {
 
 	<footer>
 	<div id="footer" data-role="footer" class ="ui-footer-fixed">
-		<h4> Fakeage by PT mysterme@gmail.com <a data-role="button" id="advancestatebtn" data-icon="arrow-r" data-id="myfooter"  onclick="advancestate()" data-inline="true">Next</a> <b id="timer">60s</b></h4>
+		<h4> Triviuhh <a data-role="button" id="advancestatebtn" data-icon="arrow-r" data-id="myfooter"  onclick="advancestate()" data-inline="true">Next</a> <b id="timer">60s</b></h4>
 	</div>
 	</footer>
 	<script>init()</script>

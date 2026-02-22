@@ -1,4 +1,4 @@
-# Fakeage - a Local area network (e.g. WiFi) Fibbage-like lying game
+# Triviuhh - a LAN / online party trivia bluffing game
 
 ### How to play
 
