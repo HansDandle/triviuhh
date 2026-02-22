@@ -22,13 +22,34 @@ import aiohttp
 from aiohttp import web
 import pyqrcode
 from unidecode import unidecode
+import difflib
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────────────────────
 
 def unidecode_allcaps_shorten32(s):
     tmp = unidecode(s)
     return tmp[:min(len(tmp), 32)].upper()
+
+
+def is_too_close(lie, answer):
+    """Return True if lie is too similar to the real answer (both already normalised)."""
+    if not lie or not answer:
+        return False
+    # Substring in either direction (catches RICHTER ⊂ RICHTER SCALE)
+    if lie in answer or answer in lie:
+        return True
+    # Word-set overlap ≥80 %
+    lie_words = set(lie.split())
+    ans_words = set(answer.split())
+    if lie_words and ans_words:
+        overlap = len(lie_words & ans_words)
+        if overlap / min(len(lie_words), len(ans_words)) >= 0.8:
+            return True
+    # Character-level similarity ≥75 %
+    if difflib.SequenceMatcher(None, lie, answer).ratio() >= 0.75:
+        return True
+    return False
 
 
 # ── Game data classes ─────────────────────────────────────────────────────────
@@ -402,8 +423,11 @@ async def ws_handler(request):
                     if game.state == 'lietome' and ws in game.players:
                         player = game.players[ws]
                         latinized = unidecode_allcaps_shorten32(parameter)
-                        if (player.name not in game.cur_question.lies and
-                                latinized != game.cur_question.answer):
+                        if player.name in game.cur_question.lies:
+                            pass  # already submitted
+                        elif is_too_close(latinized, game.cur_question.answer):
+                            await ws.send_str('liereject:Too close to the real answer — try again!')
+                        else:
                             game.cur_question.lies[player.name] = latinized
                             update = 'viewers'
 

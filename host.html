@@ -103,57 +103,57 @@
     .answer-card.truth .card-label { color: var(--green); }
     .answer-card.lie   { background: #2a1414; border-color: #6e3030; }
     .answer-card.lie   .card-label { color: var(--red); }
-    /* Reveal grid — scoring phase (bigger cards) */
+    /* Reveal grid — scoring phase */
     .reveal-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      align-content: start;
     }
     .reveal-card {
-      border-radius: 14px; padding: 22px 26px;
-      display: flex; flex-direction: column; gap: 10px;
-      border: 3px solid var(--border); background: #21262d;
-      transition: transform .2s;
+      border-radius: 10px; padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      border: 2px solid var(--border); background: #21262d;
     }
     .reveal-card.truth {
       background: #0f2d18; border-color: var(--green);
-      box-shadow: 0 0 28px rgba(63,185,80,0.25);
+      box-shadow: 0 0 18px rgba(63,185,80,0.2);
     }
     .reveal-card.lie {
       background: #2a1010; border-color: var(--red);
-      box-shadow: 0 0 20px rgba(248,81,73,0.18);
+      box-shadow: 0 0 12px rgba(248,81,73,0.15);
     }
     .reveal-badge {
-      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
-      font-weight: 800; padding: 3px 10px; border-radius: 20px; align-self: flex-start;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+      font-weight: 800; padding: 2px 8px; border-radius: 20px; align-self: flex-start;
     }
     .truth .reveal-badge { background: var(--green); color: #0d1117; }
     .lie   .reveal-badge { background: var(--red);   color: #fff; }
     .reveal-answer {
-      font-size: 1.55rem; font-weight: 800; line-height: 1.3;
+      font-size: 1.15rem; font-weight: 800; line-height: 1.3;
     }
     .truth .reveal-answer { color: var(--green); }
     .lie   .reveal-answer { color: #ff8080; }
     .reveal-lier {
-      font-size: 1.05rem; font-weight: 700; color: var(--orange);
+      font-size: 0.88rem; font-weight: 700; color: var(--orange);
     }
-    .reveal-lier span { font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+    .reveal-lier span { font-size: 0.72rem; font-weight: 400; color: var(--muted); }
     .reveal-fooled {
-      font-size: 0.92rem; color: var(--text); line-height: 1.5;
+      font-size: 0.8rem; color: var(--text); line-height: 1.4;
     }
     .reveal-fooled .fooled-label {
-      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted); display: block; margin-bottom: 2px;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); display: block; margin-bottom: 1px;
     }
     .reveal-fooled .fooled-names { font-weight: 700; color: var(--yellow); }
     .reveal-nobody {
-      font-size: 0.88rem; color: var(--muted); font-style: italic;
+      font-size: 0.78rem; color: var(--muted); font-style: italic;
     }
     .reveal-guessers .fooled-label {
-      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
-      color: var(--muted); display: block; margin-bottom: 2px;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); display: block; margin-bottom: 1px;
     }
-    .reveal-guessers .fooled-names { font-weight: 700; color: var(--green); font-size: 0.92rem; }
+    .reveal-guessers .fooled-names { font-weight: 700; color: var(--green); font-size: 0.8rem; }
     /* Final scores */
     .score-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
     .score-table th {

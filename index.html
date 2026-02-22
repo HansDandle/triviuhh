@@ -275,6 +275,13 @@ function init(){
 		received_msg = evt.data;
 		console.log('Received WS message:'+received_msg);
 		if (received_msg.startsWith("Echo")) return;
+		if (received_msg.startsWith("liereject:")) {
+			var reason = received_msg.slice(10);
+			$("#mylie").val("").attr("placeholder", reason).show();
+			$("#liebtn").show();
+			document.getElementById("questionh").innerHTML = jsonobj ? jsonobj.question : "Enter your lie!";
+			return;
+		}
 		try{
 			jsonobj = JSON.parse(received_msg);
 			console.log('JSON object received:'+jsonobj);
@@ -366,9 +373,45 @@ function init(){
 		if (jsonobj.state == 'scoring'){
 			startTimer(syncedRemaining);
 			showonly("#viewerdiv");
-			document.getElementById("viewerdivhead").innerHTML =
-				'<span style="font-size:1.3rem">💡 Answers revealed!</span><br>' +
-				'<span style="font-size:1rem;color:#888">Watch the TV for the full reveal.</span>';
+			// Build reveal: truth + all lies with who wrote/fooled
+			var revealAnswers = [jsonobj.answer];
+			for (var rp = 0; rp < jsonobj.players.length; rp++) {
+				if (jsonobj.players[rp].lie && revealAnswers.indexOf(jsonobj.players[rp].lie) < 0)
+					revealAnswers.push(jsonobj.players[rp].lie);
+			}
+			revealAnswers.sort();
+			var revealHTML = '<div style="margin-bottom:10px"><b style="font-size:1.2rem">💡 Reveal</b></div>';
+			for (var ra = 0; ra < revealAnswers.length; ra++) {
+				var ans = revealAnswers[ra];
+				var isTruth = ans === jsonobj.answer;
+				var lierName = null;
+				for (var rq = 0; rq < jsonobj.players.length; rq++) {
+					if (jsonobj.players[rq].lie === ans) { lierName = jsonobj.players[rq].name; break; }
+				}
+				var fooled = [];
+				for (var rf = 0; rf < jsonobj.players.length; rf++) {
+					if (jsonobj.players[rf].choice === ans) fooled.push(jsonobj.players[rf].name);
+				}
+				var cardStyle = isTruth
+					? 'background:#0f2d18;border:2px solid #3fb950;'
+					: 'background:#2a1010;border:2px solid #6e3030;';
+				revealHTML += '<div style="' + cardStyle + 'border-radius:10px;padding:12px 14px;margin-bottom:10px">';
+				revealHTML += '<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:800;color:' + (isTruth ? '#3fb950' : '#f85149') + '">' + (isTruth ? '✅ The Truth' : '❌ Lie') + '</div>';
+				revealHTML += '<div style="font-size:1.1rem;font-weight:800;color:' + (isTruth ? '#3fb950' : '#ff8080') + ';margin:4px 0">' + ans + '</div>';
+				if (!isTruth && lierName) {
+					revealHTML += '<div style="font-size:0.82rem;color:#f0883e"><span style="color:#8b949e">Written by</span> <b>' + lierName + '</b></div>';
+				}
+				if (fooled.length) {
+					var fooledLabel = isTruth ? 'Guessed correctly' : 'Fooled';
+					var fooledColor = isTruth ? '#3fb950' : '#e3b341';
+					revealHTML += '<div style="font-size:0.78rem;margin-top:3px"><span style="color:#8b949e;font-size:0.65rem;text-transform:uppercase;letter-spacing:1px">' + fooledLabel + '</span><br><b style="color:' + fooledColor + '">' + fooled.join(', ') + '</b></div>';
+				} else {
+					revealHTML += '<div style="font-size:0.75rem;color:#8b949e;font-style:italic">' + (isTruth ? '😲 Nobody guessed it!' : 'Nobody was fooled') + '</div>';
+				}
+				revealHTML += '</div>';
+			}
+			document.getElementById("viewerdivhead").innerHTML = jsonobj.question;
+			document.getElementById("viewerdivbody").innerHTML = revealHTML;
 		};
 		if (jsonobj.state == "finalscoring") {
 			startTimer(syncedRemaining);
@@ -480,13 +523,27 @@ function forcestart(){
 	console.log("Forced start:" + loginname);
 }
 
+function isTooClose(lie, answer) {
+	if (!lie || !answer) return false;
+	// Substring in either direction
+	if (answer.indexOf(lie) !== -1 || lie.indexOf(answer) !== -1) return true;
+	// Word-set overlap >=80%
+	var lieWords = lie.split(/\s+/).filter(Boolean);
+	var ansWords = answer.split(/\s+/).filter(Boolean);
+	if (lieWords.length && ansWords.length) {
+		var overlap = lieWords.filter(function(w){ return ansWords.indexOf(w) !== -1; }).length;
+		if (overlap / Math.min(lieWords.length, ansWords.length) >= 0.8) return true;
+	}
+	return false;
+}
+
 function lie(){
 	mylie = $("#mylie").val().toUpperCase().trim();
 	// convert it to latinize
 	mylie = latinize(mylie)
 	console.log("latinized?", mylie, jsonobj.answer)
-	if (mylie == jsonobj.answer){
-		$("#mylie").val("").attr("placeholder", "That's the real answer – try again!");
+	if (mylie == jsonobj.answer || isTooClose(mylie, jsonobj.answer)){
+		$("#mylie").val("").attr("placeholder", "Too close to the real answer – try something else!");
 	}else{
 		connection.send("lie:"+mylie);
 		$("#mylie").hide();

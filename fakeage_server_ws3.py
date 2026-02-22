@@ -32,6 +32,7 @@ import threading
 import time
 import os
 
+import difflib
 import pyqrcode
 from unidecode import unidecode  #thank me later: https://pypi.org/project/Unidecode/#description
 
@@ -474,6 +475,23 @@ def unidecode_allcaps_shorten32(string):
     return tmp[:min(len(tmp), 32)].upper()
 
 
+def is_too_close(lie, answer):
+    """Return True if lie is too similar to the real answer (both already normalised)."""
+    if not lie or not answer:
+        return False
+    if lie in answer or answer in lie:
+        return True
+    lie_words = set(lie.split())
+    ans_words = set(answer.split())
+    if lie_words and ans_words:
+        overlap = len(lie_words & ans_words)
+        if overlap / min(len(lie_words), len(ans_words)) >= 0.8:
+            return True
+    if difflib.SequenceMatcher(None, lie, answer).ratio() >= 0.75:
+        return True
+    return False
+
+
 def handleTick():
     """ Update Game.
 
@@ -620,8 +638,9 @@ async def handleClient(websocket):
                         else:
                             # register lie
                             latinized = unidecode_allcaps_shorten32(parameter)
-                            if game.cur_question.answer == latinized:
-                                print(f'ERROR: {game.players[websocket]} tried to submit the answer({game.cur_question.answer}) as a lie:({latinized})')
+                            if is_too_close(latinized, game.cur_question.answer):
+                                print(f'REJECT: {player} submitted lie too close to answer: {latinized!r} ~ {game.cur_question.answer!r}')
+                                await websocket.send('liereject:Too close to the real answer — try again!')
                             else:
                                 game.cur_question.lies[player.name] = latinized
                             update = 'viewers'
