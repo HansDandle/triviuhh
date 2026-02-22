@@ -68,7 +68,7 @@ html, body {
 }
 
 /* ---- Content cards ---- */
-#logindiv, #enterliediv, #selectliediv, #viewerdiv, #submitdiv {
+#logindiv, #enterliediv, #selectliediv, #viewerdiv {
   background: var(--surface) !important;
   margin: 14px !important;
   padding: 22px 18px !important;
@@ -567,7 +567,6 @@ function login(){
 	$("#loginbtn").hide();
 	$("#loginfieldcontain").hide();
 	$("#viewbtn").hide();
-	$("#submitdiv").hide();
 	$("#advancestatebtn").hide();
 }
 
@@ -581,7 +580,6 @@ function view(){
 	console.log("Logged in as:" + loginname);
 	$("#logindiv").hide();
 	$("#viewerdiv").show();
-	$("#submitdiv").hide();
 	$("#advancestatebtn").show();
 	viewer = true;
 }
@@ -660,11 +658,6 @@ function like(me){
 
 }
 
-function submitq(){
-	connection.send('submitq:'+$("#submitquestion").val()+":"+$("#submitanswer").val());
-	$("#submitdiv").hide();
-}
-
 function showonly(divtoshow){
 	var divs = ['#enterliediv','#selectliediv','#logindiv','#viewerdiv'];
 	for (var d =0; d < divs.length; d++){
@@ -734,17 +727,6 @@ function updateTimerDisplay() {
 			<a data-role="button" id="viewbtn" onclick="view()" data-inline="true">View only</a>
 			&nbsp;
 			<a data-role="button" href="/host.html" data-inline="true" style="background:#1f6feb;color:#fff;">🎭 Host Dashboard</a>
-		</div>
-	</div>
-
-	<div id="submitdiv">
-		<h1>Submit a question:</h1>
-		<div data-role="fieldcontain">
-			<label for="submitquestion">Question</label>
-			<input type="text" id="submitquestion" value="Enter the ___ you would like to submit." />
-			<label for="submitanswer">Answer</label>
-			<input type="text" id="submitanswer" value="question" />
-			<a data-role="button" id="submitbtn" onclick="submitq()" data-inline="true">Submit question</a>
 		</div>
 	</div>
 
