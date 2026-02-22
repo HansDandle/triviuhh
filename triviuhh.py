@@ -572,7 +572,15 @@ async def main():
         print(f'Warning: {qfile} not found — no questions loaded')
 
     # Build aiohttp app
-    app = web.Application()
+    @web.middleware
+    async def frame_options_middleware(request, handler):
+        response = await handler(request)
+        # Allow any site to embed us in an iframe (needed for Google Sites)
+        response.headers['X-Frame-Options'] = 'ALLOWALL'
+        response.headers['Content-Security-Policy'] = "frame-ancestors *;"
+        return response
+
+    app = web.Application(middlewares=[frame_options_middleware])
     app.router.add_get('/ws',               ws_handler)
     app.router.add_get('/websocket_ip.js',  serve_ws_ip)
     app.router.add_get('/',                 lambda r: web.FileResponse('index.html'))
