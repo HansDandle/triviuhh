@@ -165,6 +165,7 @@ class Game(metaclass=Singleton):
 
         # internal variables
         self.forcestart = False
+        self.paused = False
         self.roundcount = 0
         self.autoadvance = False
         self.questionsfilename = ''
@@ -251,6 +252,7 @@ class Game(metaclass=Singleton):
             }.get(self.state, 0),
             "round": self.roundcount,
             "total_rounds": self.questionsperround,
+            "paused": self.paused,
         }
         score_sorted_player_list = sorted(self.players.values(),
                                           key=lambda p: (-p.score, p.name))
@@ -482,10 +484,11 @@ def handleTick():
 
 async def asyncTick():
     while True:
-        update = game.handle_state(game.state)
-        if update is not None:
-            await update_view(update)
-        await asyncio.sleep (0.05)
+        if not game.paused:
+            update = game.handle_state(game.state)
+            if update is not None:
+                await update_view(update)
+        await asyncio.sleep(0.05)
 
 class WSFakeageServer(WebSocket):
     def handleMessage(self):
@@ -634,6 +637,19 @@ async def handleClient(websocket):
                 elif command == 'submitq':
                     game.submit_question(parameter)
                     
+                elif command == 'pausegame':
+                    game.paused = not game.paused
+                    if not game.paused:
+                        game.time()  # reset timer so remaining time is fair after resume
+                    update = 'all'
+
+                elif command == 'endgame':
+                    game.reset()
+                    game.state = 'pregame'
+                    game.paused = False
+                    game.time()
+                    update = 'all'
+
                 elif command == 'advancestate':
                     if game.state == 'pregame':
                         game.forcestart = True

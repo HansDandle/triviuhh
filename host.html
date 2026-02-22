@@ -93,7 +93,7 @@
       border: 1px solid var(--border);
     }
     .submit-card.done { border-color: var(--green); }
-    /* Answer grid */
+    /* Answer grid — selection phase */
     .answer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
     .answer-card { background: #21262d; border: 2px solid var(--border); border-radius: 10px; padding: 14px 18px; }
     .card-num   { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
@@ -103,6 +103,57 @@
     .answer-card.truth .card-label { color: var(--green); }
     .answer-card.lie   { background: #2a1414; border-color: #6e3030; }
     .answer-card.lie   .card-label { color: var(--red); }
+    /* Reveal grid — scoring phase (bigger cards) */
+    .reveal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .reveal-card {
+      border-radius: 14px; padding: 22px 26px;
+      display: flex; flex-direction: column; gap: 10px;
+      border: 3px solid var(--border); background: #21262d;
+      transition: transform .2s;
+    }
+    .reveal-card.truth {
+      background: #0f2d18; border-color: var(--green);
+      box-shadow: 0 0 28px rgba(63,185,80,0.25);
+    }
+    .reveal-card.lie {
+      background: #2a1010; border-color: var(--red);
+      box-shadow: 0 0 20px rgba(248,81,73,0.18);
+    }
+    .reveal-badge {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+      font-weight: 800; padding: 3px 10px; border-radius: 20px; align-self: flex-start;
+    }
+    .truth .reveal-badge { background: var(--green); color: #0d1117; }
+    .lie   .reveal-badge { background: var(--red);   color: #fff; }
+    .reveal-answer {
+      font-size: 1.55rem; font-weight: 800; line-height: 1.3;
+    }
+    .truth .reveal-answer { color: var(--green); }
+    .lie   .reveal-answer { color: #ff8080; }
+    .reveal-lier {
+      font-size: 1.05rem; font-weight: 700; color: var(--orange);
+    }
+    .reveal-lier span { font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+    .reveal-fooled {
+      font-size: 0.92rem; color: var(--text); line-height: 1.5;
+    }
+    .reveal-fooled .fooled-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); display: block; margin-bottom: 2px;
+    }
+    .reveal-fooled .fooled-names { font-weight: 700; color: var(--yellow); }
+    .reveal-nobody {
+      font-size: 0.88rem; color: var(--muted); font-style: italic;
+    }
+    .reveal-guessers .fooled-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); display: block; margin-bottom: 2px;
+    }
+    .reveal-guessers .fooled-names { font-weight: 700; color: var(--green); font-size: 0.92rem; }
     /* Final scores */
     .score-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
     .score-table th {
@@ -116,7 +167,31 @@
     .btn:hover { filter: brightness(1.18); }
     .btn-start { background: #238636; color: #fff; font-size: 1.4rem; padding: 16px 52px; }
     .btn-skip  { background: #d29922; color: #fff; font-size: 1rem; padding: 11px 28px; }
+    .btn-pause { background: #1f6feb; color: #fff; font-size: 1rem; padding: 11px 28px; }
+    .btn-end   { background: #b91c1c; color: #fff; font-size: 1rem; padding: 11px 28px; }
     .btn-need  { background: #21262d; color: var(--muted); font-size: 1rem; padding: 11px 28px; cursor: default; }
+    /* PIN overlay */
+    #pin-overlay {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 18px; z-index: 999;
+    }
+    #pin-overlay h2    { font-size: 1.6rem; color: var(--blue); }
+    #pin-overlay p     { color: var(--muted); }
+    #pin-input {
+      font-size: 2rem; text-align: center; letter-spacing: 1rem;
+      background: var(--surface); border: 2px solid var(--border); color: var(--text);
+      border-radius: 10px; padding: 14px 24px; width: 200px; outline: none;
+    }
+    #pin-input:focus   { border-color: var(--blue); }
+    #pin-error         { color: var(--red); font-size: 0.9rem; min-height: 1.2rem; }
+    .btn-pin           { background: var(--blue); color: #fff; font-size: 1.1rem; padding: 12px 40px; }
+    /* Paused banner */
+    #paused-banner {
+      display: none; background: #1f3a5f; border-bottom: 2px solid var(--blue);
+      text-align: center; padding: 8px; font-weight: 700; color: var(--blue);
+      letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; flex-shrink: 0;
+    }
     /* Footer */
     #footer {
       background: var(--surface); border-top: 2px solid var(--border);
@@ -129,6 +204,17 @@
 </head>
 <body>
 
+  <!-- PIN gate -->
+  <div id="pin-overlay">
+    <img src="/img/logo.jpg" alt="Triviuhh" style="max-width:260px;width:70%;">
+    <h2>Host Login</h2>
+    <p>Enter the host PIN to continue</p>
+    <input id="pin-input" type="password" inputmode="numeric" maxlength="4"
+           placeholder="_ _ _ _" onkeydown="if(event.key==='Enter') checkPin()" />
+    <div id="pin-error"></div>
+    <button class="btn btn-pin" onclick="checkPin()">Enter</button>
+  </div>
+
   <div id="topbar">
     <h1><img src="/img/logosmall.jpg" alt="Triviuhh" style="height:38px;vertical-align:middle;"></h1>
     <span id="round-display"></span>
@@ -137,6 +223,7 @@
     <span id="timer-num"></span>
   </div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="paused-banner">⏸ GAME PAUSED — waiting to resume</div>
 
   <div id="main">
     <div id="sidebar">
@@ -151,12 +238,29 @@
   <div id="footer">
     <span id="status-text">Not connected</span>
     <span id="cat-text"></span>
-    <button class="btn btn-skip" onclick="advanceState()"> Skip</button>
+    <button class="btn btn-pause" id="pause-btn" onclick="pauseGame()">⏸ Pause</button>
+    <button class="btn btn-skip"  onclick="advanceState()">⏭ Skip</button>
+    <button class="btn btn-end"   onclick="endGame()">⏹ End Game</button>
   </div>
 
   <script>
     var ws, timerInterval = null;
 
+    var HOST_PIN = '2708';
+
+    function checkPin() {
+      var v = document.getElementById('pin-input').value.trim();
+      if (v === HOST_PIN) {
+        document.getElementById('pin-overlay').style.display = 'none';
+        init();
+      } else {
+        var err = document.getElementById('pin-error');
+        err.textContent = 'Incorrect PIN — try again';
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-input').focus();
+        setTimeout(function(){ err.textContent = ''; }, 2000);
+      }
+    }
     function init() {
       var wsUrl   = get_websocket_ip();
       var host    = wsUrl.split('/')[2].split(':')[0];
@@ -174,15 +278,20 @@
     }
 
     function render(g) {
+      // Paused banner
+      document.getElementById('paused-banner').style.display = g.paused ? 'block' : 'none';
+      var pb = document.getElementById('pause-btn');
+      pb.textContent  = g.paused ? '▶ Resume' : '⏸ Pause';
+      pb.style.background = g.paused ? '#238636' : '';
       document.getElementById('round-display').textContent =
         g.round > 0 ? 'Round ' + g.round + ' / ' + g.total_rounds : '';
       var labels = { pregame:'Lobby', lietome:'Enter your lie', lieselection:'Pick the truth', scoring:'Reveal', finalscoring:'Final scores' };
-      document.getElementById('phase-label').textContent = labels[g.state] || g.state;
+      document.getElementById('phase-label').textContent = (g.paused ? '⏸ ' : '') + (labels[g.state] || g.state);
 
       var elapsed   = Date.now() / 1000 - g.phase_started;
       var remaining = Math.max(0, g.phase_duration - elapsed);
-      if (g.phase_duration > 0) startCountdown(remaining, g.phase_duration);
-      else clearCountdown();
+      if (g.paused || g.phase_duration === 0) clearCountdown();
+      else startCountdown(remaining, g.phase_duration);
 
       var cat = [g.author, g.flavor].filter(Boolean).join('  ');
       document.getElementById('cat-text').textContent = cat;
@@ -243,30 +352,42 @@
 
     function renderScoring(g) {
       var timerText = document.getElementById('timer-num').textContent;
-      setStatus('Revealing answers  next round in ' + timerText);
+      setStatus('Revealing answers — next round in ' + timerText);
       var answers = collectAnswers(g);
-      var cards = answers.map(function(ans, i) {
-        var isTruth  = ans === g.answer;
-        var lier     = findLier(g, ans);
-        var chosen   = g.players.filter(function(p){ return p.choice === ans; }).map(function(p){ return p.name; });
+      var cards = answers.map(function(ans) {
+        var isTruth = ans === g.answer;
+        var lier    = findLier(g, ans);
+        var fooled  = g.players.filter(function(p){ return p.choice === ans && !isTruth; }).map(function(p){ return p.name; });
+        var guessed = g.players.filter(function(p){ return p.choice === ans &&  isTruth; }).map(function(p){ return p.name; });
         var cls = isTruth ? 'truth' : 'lie';
-        var sub = '';
-        if (isTruth) {
-          sub = ' Correct answer';
-          sub += chosen.length ? '  guessed by: <b>' + esc(chosen.join(', ')) + '</b>' : '  <b>nobody guessed it!</b>';
-        } else {
-          if (lier)          sub  = 'Lie by: <b>' + esc(lier) + '</b>';
-          if (chosen.length) sub += '  fooled: ' + esc(chosen.join(', '));
+        var badge = isTruth ? '✅ The Truth' : '❌ Lie';
+        var html = '<div class="reveal-card ' + cls + '">';
+        html += '<div class="reveal-badge">' + badge + '</div>';
+        html += '<div class="reveal-answer">' + esc(ans) + '</div>';
+        if (!isTruth && lier) {
+          html += '<div class="reveal-lier"><span>Written by</span> ' + esc(lier) + '</div>';
+          if (fooled.length) {
+            html += '<div class="reveal-fooled"><span class="fooled-label">Fooled ' + fooled.length + ' player' + (fooled.length !== 1 ? 's' : '') + '</span>' +
+                    '<span class="fooled-names">' + esc(fooled.join(', ')) + '</span></div>';
+          } else {
+            html += '<div class="reveal-nobody">Nobody was fooled</div>';
+          }
         }
-        return '<div class="answer-card ' + cls + '">' +
-          '<div class="card-num">Option ' + (i+1) + '</div>' +
-          '<div class="card-label">' + esc(ans) + '</div>' +
-          '<div class="card-sub">' + sub + '</div></div>';
+        if (isTruth) {
+          if (guessed.length) {
+            html += '<div class="reveal-guessers"><span class="fooled-label">Guessed correctly</span>' +
+                    '<span class="fooled-names">' + esc(guessed.join(', ')) + '</span></div>';
+          } else {
+            html += '<div class="reveal-nobody">😬 Nobody guessed it!</div>';
+          }
+        }
+        html += '</div>';
+        return html;
       }).join('');
       document.getElementById('content').innerHTML =
-        '<div class="phase-heading"> The Truth is Revealed!</div>' +
+        '<div class="phase-heading">🔍 The Truth is Revealed!</div>' +
         '<div class="question-box">' + g.question + '</div>' +
-        '<div class="answer-grid">' + cards + '</div>';
+        '<div class="reveal-grid">' + cards + '</div>';
     }
 
     function renderFinalScoring(g) {
@@ -322,6 +443,12 @@
 
     function forceStart()   { ws.send('forcestart:host'); }
     function advanceState() { ws.send('advancestate:0'); }
+    function pauseGame()    { ws.send('pausegame:host'); }
+    function endGame() {
+      if (confirm('End the current game and return to the lobby?')) {
+        ws.send('endgame:host');
+      }
+    }
 
     function startCountdown(remaining, total) {
       clearInterval(timerInterval);
@@ -346,8 +473,7 @@
       document.getElementById('timer-num').textContent = '';
       document.getElementById('progress-bar').style.width = '0%';
     }
-
-    init();
+    // init() is called from checkPin() after PIN is verified
   </script>
 </body>
 </html>

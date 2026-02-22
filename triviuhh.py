@@ -108,6 +108,7 @@ class Game:
         self.scoreorder = []
 
         self.forcestart = False
+        self.paused = False
         self.roundcount = 0
         self.questionsfilename = 'questions2.csv'
         self.t = time.time()
@@ -280,6 +281,7 @@ class Game:
             }.get(self.state, 0),
             'round':        self.roundcount,
             'total_rounds': self.questionsperround,
+            'paused':       self.paused,
         }
         for p in sorted(self.players.values(), key=lambda x: (-x.score, x.name)):
             pi = p.get_info()
@@ -359,9 +361,10 @@ async def update_view(recipients='all'):
 
 async def game_tick():
     while True:
-        result = game.handle_state(game.state)
-        if result:
-            await update_view(result)
+        if not game.paused:
+            result = game.handle_state(game.state)
+            if result:
+                await update_view(result)
         await asyncio.sleep(0.05)
 
 
@@ -411,6 +414,19 @@ async def ws_handler(request):
                 elif command == 'like':
                     if game.like_recieved(ws, unidecode_allcaps_shorten32(parameter)):
                         update = 'viewers'
+
+                elif command == 'pausegame':
+                    game.paused = not game.paused
+                    if not game.paused:
+                        game.time()  # reset timer so remaining time is fair after resume
+                    update = 'all'
+
+                elif command == 'endgame':
+                    game.reset()
+                    game.state = 'pregame'
+                    game.paused = False
+                    game.time()
+                    update = 'all'
 
                 elif command == 'advancestate':
                     if game.state == 'pregame':
