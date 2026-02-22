@@ -4,10 +4,156 @@
 	<title>Triviuhh</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link href="/src/css/jquery.mobile-1.4.5.min.css" rel="stylesheet" />
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 	<script src="/websocket_ip.js"></script>
 	<script src="/src/jquery-1.11.3.min.js"></script>
 	<script src="/src/jquery.mobile-1.4.5.min.js"></script>
 	<meta charset="utf-8">
+<style>
+/* ===== Triviuhh Dark Theme ===== */
+:root {
+  --bg:       #0d0d1a;
+  --surface:  #16162a;
+  --surface2: #1e1e35;
+  --border:   #2d2d52;
+  --accent:   #8b5cf6;
+  --accent2:  #ec4899;
+  --text:     #f0f0ff;
+  --muted:    #8888aa;
+  --success:  #22c55e;
+  --radius:   14px;
+  --font:     'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: var(--font) !important;
+  margin: 0 !important; padding: 0 !important;
+}
+
+/* ---- jQuery Mobile page ---- */
+.ui-page, [data-role="page"] {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  min-height: 100vh !important;
+}
+
+/* ---- Header ---- */
+.ui-header, [data-role="header"] {
+  background: linear-gradient(135deg, #1a1a35, #12122a) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.5) !important;
+  text-shadow: none !important;
+}
+.ui-header h1, .ui-header h4 {
+  color: var(--text) !important;
+  text-shadow: none !important;
+  font-family: var(--font) !important;
+}
+
+/* ---- Footer ---- */
+.ui-footer, [data-role="footer"] {
+  background: linear-gradient(135deg, #1a1a35, #12122a) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.4) !important;
+}
+.ui-footer h4 {
+  color: var(--text) !important;
+  text-shadow: none !important;
+  font-family: var(--font) !important;
+}
+
+/* ---- Content cards ---- */
+#logindiv, #enterliediv, #selectliediv, #viewerdiv, #submitdiv {
+  background: var(--surface) !important;
+  margin: 14px !important;
+  padding: 22px 18px !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35) !important;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--text) !important;
+  text-shadow: none !important;
+  font-family: var(--font) !important;
+}
+
+/* ---- Buttons ---- */
+.ui-btn, [data-role="button"], a[data-role="button"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  text-shadow: none !important;
+  box-shadow: 0 3px 14px rgba(139,92,246,0.45) !important;
+  font-weight: 700 !important;
+  font-family: var(--font) !important;
+  letter-spacing: 0.4px !important;
+  transition: transform 0.1s, opacity 0.1s !important;
+}
+.ui-btn:hover, a[data-role="button"]:hover {
+  opacity: 0.88 !important;
+  transform: translateY(-1px) !important;
+}
+.ui-btn-active { opacity: 0.75 !important; }
+
+/* Host dashboard button gets its own colour */
+a[data-role="button"][href="/host.html"] {
+  background: linear-gradient(135deg, #1f5fcb, #1a4a9e) !important;
+  box-shadow: 0 3px 14px rgba(31,95,203,0.4) !important;
+}
+
+/* ---- Text inputs ---- */
+.ui-input-text, .ui-input-text.ui-body-inherit {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.ui-input-text input, input[type="text"], input[type="password"] {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  box-shadow: none !important;
+  font-family: var(--font) !important;
+  font-size: 1rem !important;
+}
+input::placeholder { color: var(--muted) !important; }
+
+/* ---- Labels ---- */
+label { color: var(--muted) !important; font-family: var(--font) !important; }
+.ui-field-contain { border-bottom: none !important; }
+
+/* ---- Timer ---- */
+#timer {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: var(--accent) !important;
+  font-family: var(--font) !important;
+}
+
+/* Low-time flash */
+#timer.urgent { color: var(--accent2) !important; animation: pulse 0.7s infinite alternate; }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.4; } }
+
+/* ---- Tables ---- */
+table { color: var(--text) !important; font-family: var(--font) !important; }
+th { color: var(--muted) !important; font-weight: 700 !important; }
+.ui-widget-content { background: transparent !important; border: none !important; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.04) !important; }
+
+/* ---- Misc jQuery Mobile overrides ---- */
+.ui-overlay-a, .ui-page-theme-a { background: var(--bg) !important; }
+.ui-body-inherit { background: inherit !important; color: inherit !important; }
+.ui-separator { border-color: var(--border) !important; }
+.ui-icon-shadow { box-shadow: none !important; }
+</style>
 <script charset="utf-8">
 //(C) Peter Sarkozy mysterme@gmail.com
 //TODO:
@@ -433,6 +579,8 @@ function updateTimerDisplay() {
     var timerElem = document.getElementById('timer');
     if (timerElem) {
         timerElem.textContent = timerValue + 's';
+        if (timerValue <= 10) timerElem.classList.add('urgent');
+        else timerElem.classList.remove('urgent');
     }
 }
 </script>
