@@ -452,6 +452,25 @@ async def ws_handler(request):
                     game.time()
                     update = 'all'
 
+                elif command == 'markcorrect':
+                    # Host marks a lie as also acceptable (awards points retroactively)
+                    if game.state == 'scoring' and ws in game.viewers and game.cur_question:
+                        lie_text = unidecode_allcaps_shorten32(parameter)
+                        q = game.cur_question
+                        lier_name = next((n for n, l in q.lies.items() if l == lie_text), None)
+                        if lier_name:
+                            lier = game.get_player_by_name(lier_name)
+                            if lier:
+                                lier.score += 1
+                                print(f'markcorrect: +1 to lier {lier_name}')
+                        for chooser_name, choice in q.choices.items():
+                            if choice == lie_text:
+                                chooser = game.get_player_by_name(chooser_name)
+                                if chooser:
+                                    chooser.score += 1
+                                    print(f'markcorrect: +1 to chooser {chooser_name}')
+                        update = 'all'
+
                 elif command == 'advancestate':
                     if game.state == 'pregame':
                         game.forcestart = True

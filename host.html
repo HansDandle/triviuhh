@@ -168,7 +168,11 @@
     .btn-start { background: #238636; color: #fff; font-size: 1.4rem; padding: 16px 52px; }
     .btn-skip  { background: #d29922; color: #fff; font-size: 1rem; padding: 11px 28px; }
     .btn-pause { background: #1f6feb; color: #fff; font-size: 1rem; padding: 11px 28px; }
-    .btn-end   { background: #b91c1c; color: #fff; font-size: 1rem; padding: 11px 28px; }
+    .btn-end    { background: #b91c1c; color: #fff; font-size: 1rem; padding: 11px 28px; }
+    .btn-accept { background: #1a4a1a; color: #3fb950; border: 1px solid #3fb950;
+                  font-size: 0.72rem; padding: 5px 12px; border-radius: 6px; margin-top: 6px;
+                  cursor: pointer; font-weight: 700; transition: background .15s; }
+    .btn-accept:hover { background: #238636; color: #fff; }
     .btn-need  { background: #21262d; color: var(--muted); font-size: 1rem; padding: 11px 28px; cursor: default; }
     /* PIN overlay */
     #pin-overlay {
@@ -372,6 +376,7 @@
           } else {
             html += '<div class="reveal-nobody">Nobody was fooled</div>';
           }
+          html += '<button class="btn btn-accept" onclick="markCorrect(\'' + esc(ans).replace(/'/g, "\\'") + '\')">\u2714 Accept as correct</button>';
         }
         if (isTruth) {
           if (guessed.length) {
@@ -439,6 +444,12 @@
 
     function esc(s) {
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function markCorrect(lie) {
+      if (confirm('Mark "' + lie + '" as also correct?\nThis awards +1 to who wrote it and everyone who picked it.')) {
+        ws.send('markcorrect:' + lie);
+      }
     }
 
     function forceStart()   { ws.send('forcestart:host'); }

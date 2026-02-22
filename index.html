@@ -562,8 +562,16 @@ function sortlies(){
 }
 
 function selectlie(me){
-	if (me == mylie){
-		$("#selectliediv").append('<h1>You can\'t vote for your own lie! Pick a different answer.</h1>\n').trigger('create');
+	// Use server state as source of truth — mylie client var can be stale/wrong
+	var myActualLie = null;
+	for (var i = 0; i < jsonobj.players.length; i++) {
+		if (jsonobj.players[i].name === loginname) {
+			myActualLie = jsonobj.players[i].lie;
+			break;
+		}
+	}
+	if (myActualLie && me === myActualLie){
+		$("#selectliediv").append('<p style="color:#f85149;margin:10px">You can\'t vote for your own lie! Pick a different answer.</p>\n').trigger('create');
 		return;
 	}
 	console.log("Selected lie:",me);
