@@ -167,13 +167,14 @@ class Game:
             self.viewers.remove(client)
         if client in self.players:
             player = self.players.pop(client)
-            if player.score > 0 or player.likecount > 0:
+            # Always save mid-game (not just when they have points) so they can rejoin
+            if self.state != 'pregame':
                 self.disconnected_players[player.name] = player
+                print(f'{player.name} disconnected mid-game — saved for rejoin')
             if self.cur_question:
                 self.cur_question.remove_player(player.name)
-            if not self.players:
-                print('Last player left — returning to pregame')
-                self.state = 'pregame'
+            if not self.players and self.state != 'pregame':
+                print('All players disconnected — game paused until someone rejoins')
 
     def get_player_by_name(self, name):
         return next((p for p in self.players.values() if p.name == name), None)
@@ -392,7 +393,7 @@ async def game_tick():
 # ── WebSocket handler ─────────────────────────────────────────────────────────
 
 async def ws_handler(request):
-    ws = web.WebSocketResponse(heartbeat=30)
+    ws = web.WebSocketResponse(heartbeat=120)  # 2 min — phones lock without breaking connection
     await ws.prepare(request)
     game.clients.append(ws)
     print(f'WS connected: {request.remote}')

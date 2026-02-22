@@ -185,6 +185,8 @@ var jsonobj;
 var lies;
 var mylie;
 var viewer = false;
+var reconnectTimer = null;
+var reconnectAttempts = 0;
 var checkpng = "<img alt=\"OK\" src=\"/src/check.png\">";
 var eckspng = "<img alt =\"X\" src=\"/src/ecks.png\">";
 var likepng = "<img alt = \"likes\" src=\"/src/like.png\">";
@@ -266,11 +268,39 @@ function init(){
 	gameaddress ="http://"+ ipValue.split("/")[2].split(":")[0] +":8000";
 	console.log("Websocket IP:",ipValue);
 	showonly('#logindiv');
-
 	document.getElementById('pageheader').firstElementChild.innerHTML= "Triviuhh @ "+gameaddress;
-	connection = new WebSocket(ipValue); //handle failure
-	connection.onclose = function(evt) { onClose(evt) };
-	connection.onerror = function(evt) { onError(evt) };
+
+	// Restore name from last session
+	var savedName = localStorage.getItem('triviuhh_name');
+	if (savedName) {
+		$("#loginname").val(savedName);
+	}
+
+	connect();
+
+	// Auto-reconnect when phone wakes from sleep
+	document.addEventListener('visibilitychange', function() {
+		if (!document.hidden) tryReconnect();
+	});
+	window.addEventListener('online', tryReconnect);
+}
+
+function connect() {
+	if (connection && (connection.readyState === WebSocket.CONNECTING || connection.readyState === WebSocket.OPEN)) return;
+	connection = new WebSocket(ipValue);
+	connection.onclose = function(evt) { onClose(evt); };
+	connection.onerror = function(evt) { onError(evt); };
+	connection.onopen  = function() {
+		console.log('WS connected');
+		reconnectAttempts = 0;
+		clearTimeout(reconnectTimer);
+		hideReconnectBanner();
+		// Re-authenticate if we had a name
+		if (loginname) {
+			connection.send('loginname:' + loginname);
+			console.log('Re-sent loginname after reconnect:', loginname);
+		}
+	};
 	connection.onmessage = function (evt) {
 		received_msg = evt.data;
 		console.log('Received WS message:'+received_msg);
@@ -468,25 +498,63 @@ function init(){
 }
 
 function onError(evt){
-	$("#viewerdiv").show(); //because showonly has no effect here, wtf?
-	const evtString = `Code: ${evt.code}, Reason: ${evt.reason}, WasClean: ${evt.wasClean}`;
-	document.getElementById("viewerdivhead").innerHTML = 'WebSockets Error:' + evt.data + '\\n' + evtString + '\\n';
-	console.log('error: ' + evt.data + '\n' + evtString);
-	websocket.close();
+	console.log('WS error: ' + evt);
+	// onClose will fire after this
 }
 
 function onClose(evt){
-	$("#viewerdiv").show(); //because showonly has no effect here, wtf?
-	const evtString = `Code: ${evt.code}, Reason: ${evt.reason}, WasClean: ${evt.wasClean}`;
-    
+	const evtString = `Code: ${evt.code}, Reason: ${evt.reason}`;
+	console.log('WS closed: ' + evtString);
+	if (loginname) {
+		showReconnectBanner();
+		scheduleReconnect();
+	} else {
+		$("#viewerdiv").show();
+		document.getElementById("viewerdivhead").innerHTML = 'Disconnected — <a onclick="location.reload()" style="color:#8b5cf6;cursor:pointer">tap to reload</a>';
+	}
+}
 
-	document.getElementById("viewerdivhead").innerHTML = 'WebSockets Closed ' + evtString;
-	console.log("disconnected: " + evtString);
+function showReconnectBanner() {
+	var b = document.getElementById('reconnect-banner');
+	if (!b) {
+		b = document.createElement('div');
+		b.id = 'reconnect-banner';
+		b.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1f3a5f;color:#58a6ff;' +
+			'text-align:center;padding:12px;font-size:1rem;font-weight:700;z-index:9999;';
+		document.body.appendChild(b);
+	}
+	b.style.display = 'block';
+	b.textContent = '\u{1F4F6} Reconnecting…';
+}
+
+function hideReconnectBanner() {
+	var b = document.getElementById('reconnect-banner');
+	if (b) b.style.display = 'none';
+}
+
+function scheduleReconnect() {
+	clearTimeout(reconnectTimer);
+	var delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // exponential back-off, max 30s
+	reconnectAttempts++;
+	console.log('Reconnect in ' + delay + 'ms (attempt ' + reconnectAttempts + ')');
+	reconnectTimer = setTimeout(function() {
+		console.log('Attempting reconnect...');
+		connect();
+	}, delay);
+}
+
+function tryReconnect() {
+	if (!connection || connection.readyState === WebSocket.CLOSED || connection.readyState === WebSocket.CLOSING) {
+		console.log('Page visible / online — reconnecting');
+		reconnectAttempts = 0;
+		connect();
+	}
 }
 
 function login(){
 	loginname = $("#loginname").val();
 	loginname = loginname.trim();
+	localStorage.setItem('triviuhh_name', loginname); // persist for auto-rejoin
 	connection.send("loginname:"+loginname);
 	console.log("Logged in as:" + loginname);
 	document.getElementById('pageheader').firstElementChild.innerHTML= loginname +" @ "+gameaddress;
