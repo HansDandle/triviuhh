@@ -75,6 +75,12 @@
     .pregame-wrap h2 { font-size: 2.2rem; color: var(--blue); }
     .pregame-wrap p  { color: var(--muted); font-size: 1rem; }
     .pregame-count   { font-size: 1.4rem; font-weight: bold; color: var(--text); }
+    .rounds-picker   { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 6px 0 18px; }
+    .rounds-label    { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .rounds-controls { display: flex; align-items: center; gap: 16px; }
+    .rounds-btn      { background: var(--border); color: var(--text); font-size: 1.4rem; width: 42px; height: 42px;
+                       padding: 0; border-radius: 8px; line-height: 1; }
+    #rounds-val      { font-size: 2rem; font-weight: 800; color: var(--blue); min-width: 2.5ch; text-align: center; }
     /* Phase heading */
     .phase-heading {
       font-size: 1rem; font-weight: 700; text-transform: uppercase;
@@ -310,6 +316,7 @@
 
     function renderPregame(g) {
       var n = g.players.length;
+      var rounds = g.total_rounds || 15;
       setStatus(n === 0 ? 'Waiting for players to join' : n + ' player' + (n !== 1 ? 's' : '') + ' ready');
       var btn = n >= 2
         ? '<button class="btn btn-start" onclick="forceStart()"> START GAME</button>'
@@ -319,7 +326,24 @@
         '<img src="/img/logo.jpg" alt="Triviuhh" style="max-width:340px;width:80%;margin-bottom:10px;"><br>' +
         '<p>Scan the QR code or visit <b>' + esc(document.getElementById('join-info').textContent) + '</b></p>' +
         '<p class="pregame-count">' + n + ' player' + (n !== 1 ? 's' : '') + ' ready</p>' +
+        '<div class="rounds-picker">' +
+          '<span class="rounds-label">Questions per round</span>' +
+          '<div class="rounds-controls">' +
+            '<button class="btn rounds-btn" onclick="adjustRounds(-1)">&#8722;</button>' +
+            '<span id="rounds-val">' + rounds + '</span>' +
+            '<button class="btn rounds-btn" onclick="adjustRounds(1)">&#43;</button>' +
+          '</div>' +
+        '</div>' +
         btn + '</div>';
+    }
+
+    function adjustRounds(delta) {
+      var el = document.getElementById('rounds-val');
+      if (!el) return;
+      var cur = parseInt(el.textContent) || 15;
+      var next = Math.max(1, Math.min(cur + delta, 50));
+      el.textContent = next;
+      ws.send('setrounds:' + next);
     }
 
     function renderLieToMe(g) {

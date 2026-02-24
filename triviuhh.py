@@ -453,6 +453,16 @@ async def ws_handler(request):
                     game.time()
                     update = 'all'
 
+                elif command == 'setrounds':
+                    if game.state == 'pregame' and ws in game.viewers:
+                        try:
+                            n = int(parameter)
+                            game.questionsperround = max(1, min(n, len(game.questions)))
+                            print(f'Questions per round set to {game.questionsperround}')
+                            update = 'viewers'
+                        except ValueError:
+                            pass
+
                 elif command == 'markcorrect':
                     # Host marks a lie as also acceptable (awards points retroactively)
                     if game.state == 'scoring' and ws in game.viewers and game.cur_question:
