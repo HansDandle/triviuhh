@@ -485,13 +485,12 @@
           '<td><i>' + esc(p.lie || '—') + '</i></td>' +
           '<td><b>' + p.score + '</b></td>' +
           '<td style="color:var(--green)">' + (p.correct || 0) + '</td>' +
-          '<td style="color:var(--yellow)">' + (p.fooled  || 0) + '</td>' +
-          '<td>' + p.likecount + '</td></tr>';
+          '<td style="color:var(--yellow)">' + (p.fooled  || 0) + '</td></tr>';
       }).join('');
       document.getElementById('content').innerHTML =
         '<div class="phase-heading">🏆 Final Scores</div>' +
         '<table class="score-table"><thead><tr>' +
-        '<th>#</th><th>Player</th><th>Best lie</th><th>Score</th><th>✅ Correct</th><th>😈 Fooled</th><th>❤️ Likes</th>' +
+        '<th>#</th><th>Player</th><th>Best lie</th><th>Score</th><th>✅ Correct</th><th>😈 Fooled</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
     }
 

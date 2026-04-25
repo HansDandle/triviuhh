@@ -170,9 +170,10 @@ class Question:
         self.answer = answer
         self.author = author
         self.flavor = flavor
-        self.lies = {}     # name → lie text
-        self.choices = {}  # name → chosen answer
-        self.likes = {}    # name → liked answer
+        self.lies = {}           # name → lie text
+        self.choices = {}        # name → chosen answer
+        self.likes = {}          # name → liked answer
+        self.marked_correct = set()  # lie texts already marked correct (dedup)
 
     def __repr__(self):
         return json.dumps({'question': self.question, 'answer': self.answer})
@@ -597,20 +598,20 @@ async def ws_handler(request):
                     if game.state == 'scoring' and ws in game.viewers and game.cur_question:
                         lie_text = unidecode_allcaps_shorten32(parameter)
                         q = game.cur_question
-                        lier_name = next((n for n, l in q.lies.items() if l == lie_text), None)
-                        lier = game.get_player_by_name(lier_name) if lier_name else None
-                        for chooser_name, choice in q.choices.items():
-                            if choice == lie_text:
-                                chooser = game.get_player_by_name(chooser_name)
-                                if chooser:
-                                    chooser.correct += 1  # they were right
-                                    print(f'markcorrect: +1 correct to {chooser_name}')
-                                if lier and chooser_name != lier_name:
-                                    lier.fooled = max(0, lier.fooled - 1)  # didn't actually fool them
-                        if lier:
-                            lier.correct += 1  # wrote a valid answer
-                            print(f'markcorrect: +1 correct to writer {lier_name}')
-                        update = 'all'
+                        if lie_text not in q.marked_correct:
+                            q.marked_correct.add(lie_text)
+                            lier_name = next((n for n, l in q.lies.items() if l == lie_text), None)
+                            lier = game.get_player_by_name(lier_name) if lier_name else None
+                            for chooser_name, choice in q.choices.items():
+                                if choice == lie_text:
+                                    chooser = game.get_player_by_name(chooser_name)
+                                    if chooser:
+                                        chooser.correct += 1
+                                        print(f'markcorrect: +1 correct to {chooser_name}')
+                                    if lier and chooser_name != lier_name:
+                                        lier.fooled = max(0, lier.fooled - 1)
+                            # lier gets no credit — they submitted it as a lie, not a guess
+                            update = 'all'
 
                 elif command == 'advancestate':
                     if game.state == 'pregame':

@@ -494,13 +494,13 @@ function connect() {
 			}
 			for (var tablecount = 0; tablecount < numtables; tablecount++) {
 				tabletext += '<td valign="top">';
-				tabletext += "<table border = 0><thead><tr><th>#</th><th>Player</th><th>Their lie</th><th>"+cuppng+"</th><th>✅</th><th>😈</th><th>"+likepng+"</th></tr></thead><tbody class=\"ui-widget-content\">";
+				tabletext += "<table border = 0><thead><tr><th>#</th><th>Player</th><th>Their lie</th><th>"+cuppng+"</th><th>✅</th><th>😈</th></tr></thead><tbody class=\"ui-widget-content\">";
 
 				for (var player = stepsize *tablecount ; player < Math.min(jsonobj.players.length, (stepsize*(tablecount+1))); player++) {
 					var p = jsonobj.players[player];
 					var l = "";
 					if (p.lie != null) l = p.lie;
-					tabletext += "<tr><td>" + (player + 1) + "</td><td>" + p.name + "</td><td>" + l + "</td><td>" + p.score + "</td><td>" + (p.correct || 0) + "</td><td>" + (p.fooled || 0) + "</td><td>" + p.likecount + "</td></tr>\n";
+					tabletext += "<tr><td>" + (player + 1) + "</td><td>" + p.name + "</td><td>" + l + "</td><td>" + p.score + "</td><td>" + (p.correct || 0) + "</td><td>" + (p.fooled || 0) + "</td></tr>\n";
 				}
 				tabletext += "</tbody></table>";
 				tabletext += "</td>";
