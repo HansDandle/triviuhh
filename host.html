@@ -202,18 +202,6 @@
       text-align: center; padding: 8px; font-weight: 700; color: var(--blue);
       letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; flex-shrink: 0;
     }
-    /* Confirm modal */
-    #confirm-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
-      z-index: 999; align-items: center; justify-content: center;
-    }
-    #confirm-overlay.open { display: flex; }
-    #confirm-box {
-      background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
-      padding: 28px 32px; max-width: 380px; width: 90%; text-align: center;
-    }
-    #confirm-box p { margin-bottom: 20px; line-height: 1.5; }
-    #confirm-box .confirm-btns { display: flex; gap: 12px; justify-content: center; }
     /* Footer */
     #footer {
       background: var(--surface); border-top: 2px solid var(--border);
@@ -255,16 +243,6 @@
       <ul id="player-list"></ul>
     </div>
     <div id="content"></div>
-  </div>
-
-  <div id="confirm-overlay">
-    <div id="confirm-box">
-      <p id="confirm-msg"></p>
-      <div class="confirm-btns">
-        <button class="btn" id="confirm-yes" style="background:var(--red)">Yes</button>
-        <button class="btn" id="confirm-no">Cancel</button>
-      </div>
-    </div>
   </div>
 
   <div id="footer">
@@ -492,26 +470,34 @@
       return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    function showConfirm(msg, onYes) {
-      var overlay = document.getElementById('confirm-overlay');
-      document.getElementById('confirm-msg').textContent = msg;
-      overlay.classList.add('open');
-      function cleanup() { overlay.classList.remove('open'); }
-      document.getElementById('confirm-yes').onclick = function() { cleanup(); onYes(); };
-      document.getElementById('confirm-no').onclick  = cleanup;
+    function armButton(btn, label, action) {
+      if (btn.dataset.armed) { action(); return; }
+      var orig = btn.textContent;
+      btn.dataset.armed = '1';
+      btn.textContent = label;
+      btn.style.outline = '2px solid var(--orange)';
+      var t = setTimeout(function() {
+        delete btn.dataset.armed;
+        btn.textContent = orig;
+        btn.style.outline = '';
+      }, 2500);
+      btn.dataset.armTimer = t;
     }
 
     function markCorrect(lie) {
-      showConfirm('Mark "' + lie + '" as also correct? This awards +1 to who wrote it and everyone who picked it.', function() {
-        ws.send('markcorrect:' + lie);
-      });
+      ws.send('markcorrect:' + lie);
     }
 
     function forceStart()   { ws.send('forcestart:host'); }
     function advanceState() { ws.send('advancestate:0'); }
     function pauseGame()    { ws.send('pausegame:host'); }
     function endGame() {
-      showConfirm('End the current game and return to the lobby?', function() {
+      var btn = document.querySelector('.btn-end');
+      armButton(btn, '⏹ Confirm?', function() {
+        clearTimeout(btn.dataset.armTimer);
+        delete btn.dataset.armed;
+        btn.textContent = '⏹ End Game';
+        btn.style.outline = '';
         ws.send('endgame:host');
       });
     }
