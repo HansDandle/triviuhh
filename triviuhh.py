@@ -52,6 +52,116 @@ def is_too_close(lie, answer):
     return False
 
 
+HOUSE_LIES = [
+    # Places
+    "TIMBUKTU", "VLADIVOSTOK", "PATAGONIA", "KATHMANDU", "DJIBOUTI",
+    "LIECHTENSTEIN", "ANDORRA", "TUVALU", "SAN MARINO", "VANUATU",
+    "SURINAME", "BURKINA FASO", "KYRGYZSTAN", "CAPE VERDE",
+    "TIERRA DEL FUEGO", "LAKE TITICACA", "MOUNT EREBUS", "THE MALDIVES",
+    "BORA BORA", "ZANZIBAR", "OUAGADOUGOU", "ULAANBAATAR", "ANTANANARIVO",
+    # Animals
+    "PANGOLIN", "TAPIR", "NARWHAL", "AXOLOTL", "CAPYBARA",
+    "KINKAJOU", "WOMBAT", "BINTURONG", "FOSSA", "QUOKKA",
+    "NUMBAT", "BLOBFISH", "DUGONG", "SAIGA", "OKAPI",
+    "GERENUK", "IRRAWADDY DOLPHIN", "PATAGONIAN MARA", "SHOEBILL",
+    # People / titles
+    "ST. GENEVIEVE", "CORNELIUS FUDGE", "ARCHIBALD FINCH",
+    "BEAUREGARD SUMP", "NIGEL FARRELLY", "PEPIN THE SHORT",
+    "CHARLES THE FAT", "LOUIS THE PIOUS", "MITHRIDATES", "ELAGABALUS",
+    "VESPASIAN", "CARACALLA", "VERCINGETORIX",
+    # Science-y / Latin-y
+    "PHLOGISTON", "ECTOPLASM", "MYCELIUM", "BORBORYGMUS",
+    "PETRICHOR", "PAREIDOLIA", "PROPRIOCEPTION", "LUMINIFEROUS AETHER",
+    "THE PLANCK CONSTANT", "DARK ENERGY", "ABSQUATULATE",
+    # Nonsense / funny
+    "FUDGENUTS", "SNOODLEBERRY", "THE GRAND WAZOO", "BUMBERSHOOT",
+    "FLIBBERTIGIBBET", "KERFUFFLE", "NINCOMPOOP", "SKEDADDLE",
+    "BUMFUZZLE", "LOLLYGAG", "SCALAWAG", "RAPSCALLION",
+    "WHIPPERSNAPPER", "POPINJAY", "CODSWALLOP", "BALDERDASH",
+    "TOMMYROT", "POPPYCOCK", "HOGWASH", "MALARKEY",
+    # Rude / funny proper nouns
+    "SATAN'S ARMPIT", "LORD DAMPNUT", "SIR REGINALD POOPINGTON",
+    "DINGLEBERRY FALLS", "INTERCOURSE PA", "DILDO NEWFOUNDLAND",
+    "BASTARD NORWAY", "TWATT ORKNEY",
+    # Food / plants
+    "WORCESTERSHIRE", "PUMPERNICKEL", "RUTABAGA", "KOHLRABI",
+    "PERSIMMON", "KUMQUAT", "DRAGONFRUIT", "DURIAN", "RAMBUTAN",
+    "QUINCE", "TAMARILLO", "ACKEE",
+    # Rivers / geography
+    "THE ORINOCO", "THE MEKONG", "THE LIMPOPO", "THE ZAMBEZI",
+    "LAKE MALAWI", "THE TONLE SAP", "THE IRRAWADDY",
+    # Convincing real answers
+    "MOROCCO", "GREENLAND", "MOUNT COOK", "LAKE CONSTANCE",
+    "THE ODER", "MOLDOVA", "TRANSNISTRIA",
+    # Cryptid / mythical creature nonsense
+    "BIGFOOT'S GOOCH", "UNICORN PUKE", "SASQUATCH'S BUNION",
+    "MOTHMAN'S NEWSLETTER", "YETI'S ARMPIT", "DRAGON SNOT",
+    "THE LOCH NESS MONSTER'S ELBOW", "CHUPACABRA'S TOENAIL",
+    "WEREWOLF DANDRUFF", "GOBLIN SWEAT", "KRAKEN LEFTOVERS",
+    "MERMAID DANDRUFF", "FAIRY ARMPIT", "GNOME SWEAT",
+    "TROLL BUTTER", "ELF CHEESE", "CENTAUR DEODORANT",
+    "MINOTAUR'S THERAPIST", "THE SPHINX'S KNEES", "DRAGON BUTTER",
+    # Weird US places / states
+    "KANSAS", "NEBRASKA", "DELAWARE", "WYOMING", "IDAHO",
+    "MONTANA", "ARKANSAS", "NORTH DAKOTA", "MISSISSIPPI", "CONNECTICUT",
+    "BORING OREGON", "NORMAL ILLINOIS", "NOTHING ARIZONA", "WHY ARIZONA",
+    "HELL MICHIGAN", "CLIMAX MICHIGAN", "BLUE BALL OHIO",
+    "EMBARRASS MINNESOTA", "SPREAD EAGLE WISCONSIN", "BATMAN TURKEY",
+    # More odd animals
+    "AYE-AYE", "PROBOSCIS MONKEY", "TARSIER", "KAKAPO", "HAGFISH",
+    "MANTIS SHRIMP", "VAMPIRE SQUID", "GOBLIN SHARK", "DUMBO OCTOPUS",
+    "PINK FAIRY ARMADILLO", "SATANIC LEAF-TAILED GECKO", "HELLBENDER",
+    "NAKED MOLE RAT", "STAR-NOSED MOLE", "GLASS FROG",
+    "PISTOL SHRIMP", "BARRELEYE FISH", "THORNY DEVIL",
+    "FRILLED SHARK", "PLATYPUS", "TASMANIAN DEVIL",
+    "PACU FISH", "HAIRY FROGFISH", "BURROWING OWL", "POTOO",
+    # Gross / adventurous food
+    "HAGGIS", "MARMITE", "VEGEMITE", "BLOOD PUDDING", "HEADCHEESE",
+    "SCRAPPLE", "KNACKWURST", "COCK-A-LEEKIE", "STINKING BISHOP",
+    "LIMBURGER", "LUTEFISK", "SURSTRÖMMING", "BALUT", "CENTURY EGG",
+    "HÁKARL", "CASU MARZU", "MUKTUK", "SPOTTED DICK",
+    "TOAD IN THE HOLE", "BUBBLE AND SQUEAK",
+    # More nonsense words
+    "CATTYWAMPUS", "SNICKERSNEE", "TARADIDDLE", "BLATHERSKITE",
+    "SMELLFUNGUS", "FLAPDOODLE", "COLLYWOBBLES", "ARGLE-BARGLE",
+    "CRAPULOUS", "SNOLLYGOSTER", "MUMBLETY-PEG", "GARDYLOO",
+    "DISCOMBOBULATE", "MOLLYCODDLE", "BUMBLE-PUPPY", "LOLLIPOP HEAD",
+    "SKULLDUGGERY", "TOMFOOLERY", "SHENANIGANS", "HOOTENANNY",
+    # More science-y
+    "QUANTUM ENTANGLEMENT", "THE HIGGS BOSON", "DARK MATTER",
+    "SCHRÖDINGER'S CAT", "MAXWELL'S DEMON", "LAPLACE'S DEMON",
+    "BOSE-EINSTEIN CONDENSATE", "MUON NEUTRINO", "SPAGHETTIFICATION",
+    "QUANTUM TUNNELING", "HAWKING RADIATION", "THE PLANCK LENGTH",
+    # More historical / silly names
+    "THADDEUS QUIMBY", "IGNATIUS FARNSWORTH", "REGINALD SNODGRASS",
+    "LORD HORATIO BUMBLECRUMB", "SIR CRISPIN WETHERBY",
+    "PTOLEMY THE THUNDERER", "RAMESSES THE MEDIOCRE",
+    "ARCHIBALD BUMBLETHWAITE", "RASPUTIN'S BEARD",
+    "NAPOLEON'S HORSE", "ATTILA'S DENTIST", "VLAD'S MORTGAGE",
+    "CLEOPATRA'S ELBOW", "GENGHIS KHAN'S ACCOUNTANT",
+    "THADDEUS CORNWALL", "CORNELIUS SNODGRASS", "HUMPHREY BUMBLEFOOT",
+    # Rude titles / fake officials
+    "PROFESSOR PISSYPANTS", "DR. DINGUS", "CAPTAIN TURDBURGER",
+    "ADMIRAL FARTSWORTH", "GENERAL ASSHOLE", "MAJOR WEDGIE",
+    "BARON VON TAINT", "LORD BUMBLECROTCH", "SIR SHITSWORTH",
+    "COLONEL MUSTARD'S GOOCH", "THE DUCHESS OF DINGUS",
+    # Remote / tiny real places
+    "BHUTAN", "NAURU", "PALAU", "KIRIBATI", "NIUE",
+    "SVALBARD", "TRISTAN DA CUNHA", "PITCAIRN ISLAND",
+    "TOKELAU", "BOUVET ISLAND", "JAN MAYEN", "THE AZORES",
+    "FAROE ISLANDS", "ISLE OF MAN", "WALLIS AND FUTUNA",
+    "SAINT PIERRE AND MIQUELON", "TURKS AND CAICOS",
+    "DIEGO GARCIA", "HEARD ISLAND", "MACQUARIE ISLAND",
+    # Delightfully mundane / absurd
+    "SOME GUY NAMED DAVE", "GREG FROM ACCOUNTING", "A MEDIUM-SIZED ROCK",
+    "THE SECOND SADDEST CLOWN", "YOUR MOM'S COUSIN", "FINLAND",
+    "SIR LOIN OF BEEF", "MOIST TOWELETTE", "A FIRMLY-WORDED LETTER",
+    "THE COLOR BEIGE", "TUESDAY", "SEVENTEEN", "THE VOID",
+    "AGGRESSIVE VIBES", "THE THIRD OPTION", "A SENSIBLE HAT",
+    "THE GHOST OF CHRISTMAS MEAT", "SOMEBODY ELSE'S PROBLEM",
+    "AN UNREMARKABLE TUESDAY", "THE BEIGE AREA",
+]
+
 # ── Game data classes ─────────────────────────────────────────────────────────
 
 class Question:
@@ -97,18 +207,26 @@ class Question:
 class Player:
     def __init__(self, name):
         self.name = name
-        self.score = 0
+        self.correct = 0   # points for guessing right (or writing a marked-correct lie)
+        self.fooled  = 0   # points for fooling other players
         self.likecount = 0
+
+    @property
+    def score(self):
+        return self.correct + self.fooled
 
     def __repr__(self):
         return f'{self.name} ({self.score}pt)'
 
     def reset(self):
-        self.score = 0
+        self.correct = 0
+        self.fooled  = 0
         self.likecount = 0
 
     def get_info(self):
-        return {'name': self.name, 'score': self.score, 'likecount': self.likecount}
+        return {'name': self.name, 'score': self.score,
+                'correct': self.correct, 'fooled': self.fooled,
+                'likecount': self.likecount}
 
 
 # ── Game ──────────────────────────────────────────────────────────────────────
@@ -217,6 +335,14 @@ class Game:
         if not self.questions:
             self.reset()
         self.cur_question = self.questions.pop(0)
+        # Pick a house lie that isn't too close to the real answer
+        pool = list(HOUSE_LIES)
+        random.shuffle(pool)
+        for candidate in pool:
+            normed = unidecode_allcaps_shorten32(candidate)
+            if not is_too_close(normed, self.cur_question.answer):
+                self.cur_question.lies['The House'] = normed
+                break
         self.roundcount += 1
         self.currentlie = None
         self.scoreorder = []
@@ -237,13 +363,13 @@ class Game:
             chooser = self.get_player_by_name(chooser_name)
             if choice == self.cur_question.answer:
                 if chooser:
-                    chooser.score += 1
+                    chooser.correct += 1
                 print(f'{chooser_name} guessed correctly')
             for lier_name, lie in self.cur_question.lies.items():
                 if lie == choice and lier_name != chooser_name:
                     lier = self.get_player_by_name(lier_name)
                     if lier:
-                        lier.score += 1
+                        lier.fooled += 1
                     print(f'{lier_name} fooled {chooser_name}')
         self.scoreorder = self.cur_question.get_scoreorder()
         self.currentlie = None  # show all answers at once in the reveal
@@ -292,6 +418,7 @@ class Game:
             'answer':        q.answer          if q else '',
             'author':       (q.author  or '')  if q else '',
             'flavor':       (q.flavor  or '')  if q else '',
+            'house_lie':     q.lies.get('The House', '') if q else '',
             'currentlie':    self.currentlie,
             'phase_started': self.t,
             'phase_duration': {
@@ -327,7 +454,7 @@ class Game:
 
     def _handle_lietome(self):
         all_in = (len(self.players) > 0 and
-                  len(self.cur_question.lies) == len(self.players))
+                  all(p.name in self.cur_question.lies for p in self.players.values()))
         if all_in or (time.time() - self.t) >= self.lietime:
             self.time()
             self.state = 'lieselection'
@@ -464,22 +591,22 @@ async def ws_handler(request):
                             pass
 
                 elif command == 'markcorrect':
-                    # Host marks a lie as also acceptable (awards points retroactively)
                     if game.state == 'scoring' and ws in game.viewers and game.cur_question:
                         lie_text = unidecode_allcaps_shorten32(parameter)
                         q = game.cur_question
                         lier_name = next((n for n, l in q.lies.items() if l == lie_text), None)
-                        if lier_name:
-                            lier = game.get_player_by_name(lier_name)
-                            if lier:
-                                lier.score += 1
-                                print(f'markcorrect: +1 to lier {lier_name}')
+                        lier = game.get_player_by_name(lier_name) if lier_name else None
                         for chooser_name, choice in q.choices.items():
                             if choice == lie_text:
                                 chooser = game.get_player_by_name(chooser_name)
                                 if chooser:
-                                    chooser.score += 1
-                                    print(f'markcorrect: +1 to chooser {chooser_name}')
+                                    chooser.correct += 1  # they were right
+                                    print(f'markcorrect: +1 correct to {chooser_name}')
+                                if lier and chooser_name != lier_name:
+                                    lier.fooled = max(0, lier.fooled - 1)  # didn't actually fool them
+                        if lier:
+                            lier.correct += 1  # wrote a valid answer
+                            print(f'markcorrect: +1 correct to writer {lier_name}')
                         update = 'all'
 
                 elif command == 'advancestate':

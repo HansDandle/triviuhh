@@ -309,6 +309,7 @@ function connect() {
 			var reason = received_msg.slice(10);
 			$("#mylie").val("").attr("placeholder", reason).show();
 			$("#liebtn").show();
+			$("#randomliebtn").show();
 			document.getElementById("questionh").innerHTML = jsonobj ? jsonobj.question : "Enter your lie!";
 			return;
 		}
@@ -403,20 +404,27 @@ function connect() {
 		if (jsonobj.state == 'scoring'){
 			startTimer(syncedRemaining);
 			showonly("#viewerdiv");
-			// Build reveal: truth + all lies with who wrote/fooled
-			var revealAnswers = [jsonobj.answer];
+			// Build reveal: lies first (alpha), truth last
+			var revealAnswers = [];
 			for (var rp = 0; rp < jsonobj.players.length; rp++) {
 				if (jsonobj.players[rp].lie && revealAnswers.indexOf(jsonobj.players[rp].lie) < 0)
 					revealAnswers.push(jsonobj.players[rp].lie);
 			}
+			if (jsonobj.house_lie && revealAnswers.indexOf(jsonobj.house_lie) < 0)
+				revealAnswers.push(jsonobj.house_lie);
 			revealAnswers.sort();
+			revealAnswers.push(jsonobj.answer); // truth last for suspense
 			var revealHTML = '<div style="margin-bottom:10px"><b style="font-size:1.2rem">💡 Reveal</b></div>';
 			for (var ra = 0; ra < revealAnswers.length; ra++) {
 				var ans = revealAnswers[ra];
 				var isTruth = ans === jsonobj.answer;
 				var lierName = null;
-				for (var rq = 0; rq < jsonobj.players.length; rq++) {
-					if (jsonobj.players[rq].lie === ans) { lierName = jsonobj.players[rq].name; break; }
+				if (jsonobj.house_lie === ans) {
+					lierName = '🏠 The House';
+				} else {
+					for (var rq = 0; rq < jsonobj.players.length; rq++) {
+						if (jsonobj.players[rq].lie === ans) { lierName = jsonobj.players[rq].name; break; }
+					}
 				}
 				var fooled = [];
 				for (var rf = 0; rf < jsonobj.players.length; rf++) {
@@ -477,13 +485,13 @@ function connect() {
 			}
 			for (var tablecount = 0; tablecount < numtables; tablecount++) {
 				tabletext += '<td valign="top">';
-				tabletext += "<table border = 0><thead><tr><th>#</th><th>Player</th><th>Their lie</th><th>"+cuppng+"</th><th>"+likepng+"</th></tr></thead><tbody class=\"ui-widget-content\">";
+				tabletext += "<table border = 0><thead><tr><th>#</th><th>Player</th><th>Their lie</th><th>"+cuppng+"</th><th>✅</th><th>😈</th><th>"+likepng+"</th></tr></thead><tbody class=\"ui-widget-content\">";
 
 				for (var player = stepsize *tablecount ; player < Math.min(jsonobj.players.length, (stepsize*(tablecount+1))); player++) {
 					var p = jsonobj.players[player];
 					var l = "";
 					if (p.lie != null) l = p.lie;
-					tabletext += "<tr><td>" + (player + 1) + "</td><td>" + p.name + "</td><td>" + l + "</td><td>" + p.score  + "</td><td>" + p.likecount  + "</td></tr>\n";
+					tabletext += "<tr><td>" + (player + 1) + "</td><td>" + p.name + "</td><td>" + l + "</td><td>" + p.score + "</td><td>" + (p.correct || 0) + "</td><td>" + (p.fooled || 0) + "</td><td>" + p.likecount + "</td></tr>\n";
 				}
 				tabletext += "</tbody></table>";
 				tabletext += "</td>";
@@ -614,7 +622,8 @@ function lie(){
 		connection.send("lie:"+mylie);
 		$("#mylie").hide();
 		$("#liebtn").hide();
-			document.getElementById("questionh").innerHTML = "Lie submitted! Waiting for others…";
+		$("#randomliebtn").hide();
+		document.getElementById("questionh").innerHTML = "Lie submitted! Waiting for others…";
 	}
 }
 
@@ -622,9 +631,106 @@ function sortlies(){
 	var sortedlies = [jsonobj.answer];
 	for (var player = 0; player<jsonobj.players.length; player ++){
 		if (jsonobj.players[player].lie != null && sortedlies.indexOf(jsonobj.players[player].lie)< 0) sortedlies.push(jsonobj.players[player].lie);
-		}
+	}
+	if (jsonobj.house_lie && sortedlies.indexOf(jsonobj.house_lie) < 0) sortedlies.push(jsonobj.house_lie);
 	sortedlies.sort();
 	return sortedlies;
+}
+
+var HOUSE_LIES = [
+    "TIMBUKTU","VLADIVOSTOK","PATAGONIA","KATHMANDU","DJIBOUTI",
+    "LIECHTENSTEIN","ANDORRA","TUVALU","SAN MARINO","VANUATU",
+    "SURINAME","BURKINA FASO","KYRGYZSTAN","CAPE VERDE",
+    "TIERRA DEL FUEGO","LAKE TITICACA","MOUNT EREBUS","THE MALDIVES",
+    "BORA BORA","ZANZIBAR","OUAGADOUGOU","ULAANBAATAR","ANTANANARIVO",
+    "PANGOLIN","TAPIR","NARWHAL","AXOLOTL","CAPYBARA",
+    "KINKAJOU","WOMBAT","BINTURONG","FOSSA","QUOKKA",
+    "NUMBAT","BLOBFISH","DUGONG","SAIGA","OKAPI",
+    "GERENUK","IRRAWADDY DOLPHIN","PATAGONIAN MARA","SHOEBILL",
+    "ST. GENEVIEVE","CORNELIUS FUDGE","ARCHIBALD FINCH",
+    "BEAUREGARD SUMP","NIGEL FARRELLY","PEPIN THE SHORT",
+    "CHARLES THE FAT","LOUIS THE PIOUS","MITHRIDATES","ELAGABALUS",
+    "VESPASIAN","CARACALLA","VERCINGETORIX",
+    "PHLOGISTON","ECTOPLASM","MYCELIUM","BORBORYGMUS",
+    "PETRICHOR","PAREIDOLIA","PROPRIOCEPTION","LUMINIFEROUS AETHER",
+    "THE PLANCK CONSTANT","DARK ENERGY","ABSQUATULATE",
+    "FUDGENUTS","SNOODLEBERRY","THE GRAND WAZOO","BUMBERSHOOT",
+    "FLIBBERTIGIBBET","KERFUFFLE","NINCOMPOOP","SKEDADDLE",
+    "BUMFUZZLE","LOLLYGAG","SCALAWAG","RAPSCALLION",
+    "WHIPPERSNAPPER","POPINJAY","CODSWALLOP","BALDERDASH",
+    "TOMMYROT","POPPYCOCK","HOGWASH","MALARKEY",
+    "SATAN'S ARMPIT","LORD DAMPNUT","SIR REGINALD POOPINGTON",
+    "DINGLEBERRY FALLS","INTERCOURSE PA","DILDO NEWFOUNDLAND",
+    "BASTARD NORWAY","TWATT ORKNEY",
+    "WORCESTERSHIRE","PUMPERNICKEL","RUTABAGA","KOHLRABI",
+    "PERSIMMON","KUMQUAT","DRAGONFRUIT","DURIAN","RAMBUTAN",
+    "QUINCE","TAMARILLO","ACKEE",
+    "THE ORINOCO","THE MEKONG","THE LIMPOPO","THE ZAMBEZI",
+    "LAKE MALAWI","THE TONLE SAP","THE IRRAWADDY",
+    "MOROCCO","GREENLAND","MOUNT COOK","LAKE CONSTANCE",
+    "THE ODER","MOLDOVA","TRANSNISTRIA",
+    "BIGFOOT'S GOOCH","UNICORN PUKE","SASQUATCH'S BUNION",
+    "MOTHMAN'S NEWSLETTER","YETI'S ARMPIT","DRAGON SNOT",
+    "THE LOCH NESS MONSTER'S ELBOW","CHUPACABRA'S TOENAIL",
+    "WEREWOLF DANDRUFF","GOBLIN SWEAT","KRAKEN LEFTOVERS",
+    "MERMAID DANDRUFF","FAIRY ARMPIT","GNOME SWEAT",
+    "TROLL BUTTER","ELF CHEESE","CENTAUR DEODORANT",
+    "MINOTAUR'S THERAPIST","THE SPHINX'S KNEES","DRAGON BUTTER",
+    "KANSAS","NEBRASKA","DELAWARE","WYOMING","IDAHO",
+    "MONTANA","ARKANSAS","NORTH DAKOTA","MISSISSIPPI","CONNECTICUT",
+    "BORING OREGON","NORMAL ILLINOIS","NOTHING ARIZONA","WHY ARIZONA",
+    "HELL MICHIGAN","CLIMAX MICHIGAN","BLUE BALL OHIO",
+    "EMBARRASS MINNESOTA","SPREAD EAGLE WISCONSIN","BATMAN TURKEY",
+    "AYE-AYE","PROBOSCIS MONKEY","TARSIER","KAKAPO","HAGFISH",
+    "MANTIS SHRIMP","VAMPIRE SQUID","GOBLIN SHARK","DUMBO OCTOPUS",
+    "PINK FAIRY ARMADILLO","SATANIC LEAF-TAILED GECKO","HELLBENDER",
+    "NAKED MOLE RAT","STAR-NOSED MOLE","GLASS FROG",
+    "PISTOL SHRIMP","BARRELEYE FISH","THORNY DEVIL",
+    "FRILLED SHARK","PLATYPUS","TASMANIAN DEVIL",
+    "PACU FISH","HAIRY FROGFISH","BURROWING OWL","POTOO",
+    "HAGGIS","MARMITE","VEGEMITE","BLOOD PUDDING","HEADCHEESE",
+    "SCRAPPLE","KNACKWURST","COCK-A-LEEKIE","STINKING BISHOP",
+    "LIMBURGER","LUTEFISK","SURSTRÖMMING","BALUT","CENTURY EGG",
+    "HÁKARL","CASU MARZU","MUKTUK","SPOTTED DICK",
+    "TOAD IN THE HOLE","BUBBLE AND SQUEAK",
+    "CATTYWAMPUS","SNICKERSNEE","TARADIDDLE","BLATHERSKITE",
+    "SMELLFUNGUS","FLAPDOODLE","COLLYWOBBLES","ARGLE-BARGLE",
+    "CRAPULOUS","SNOLLYGOSTER","MUMBLETY-PEG","GARDYLOO",
+    "DISCOMBOBULATE","MOLLYCODDLE","BUMBLE-PUPPY","LOLLIPOP HEAD",
+    "SKULLDUGGERY","TOMFOOLERY","SHENANIGANS","HOOTENANNY",
+    "QUANTUM ENTANGLEMENT","THE HIGGS BOSON","DARK MATTER",
+    "SCHRÖDINGER'S CAT","MAXWELL'S DEMON","LAPLACE'S DEMON",
+    "BOSE-EINSTEIN CONDENSATE","MUON NEUTRINO","SPAGHETTIFICATION",
+    "QUANTUM TUNNELING","HAWKING RADIATION","THE PLANCK LENGTH",
+    "THADDEUS QUIMBY","IGNATIUS FARNSWORTH","REGINALD SNODGRASS",
+    "LORD HORATIO BUMBLECRUMB","SIR CRISPIN WETHERBY",
+    "PTOLEMY THE THUNDERER","RAMESSES THE MEDIOCRE",
+    "ARCHIBALD BUMBLETHWAITE","RASPUTIN'S BEARD",
+    "NAPOLEON'S HORSE","ATTILA'S DENTIST","VLAD'S MORTGAGE",
+    "CLEOPATRA'S ELBOW","GENGHIS KHAN'S ACCOUNTANT",
+    "THADDEUS CORNWALL","CORNELIUS SNODGRASS","HUMPHREY BUMBLEFOOT",
+    "PROFESSOR PISSYPANTS","DR. DINGUS","CAPTAIN TURDBURGER",
+    "ADMIRAL FARTSWORTH","GENERAL ASSHOLE","MAJOR WEDGIE",
+    "BARON VON TAINT","LORD BUMBLECROTCH","SIR SHITSWORTH",
+    "COLONEL MUSTARD'S GOOCH","THE DUCHESS OF DINGUS",
+    "BHUTAN","NAURU","PALAU","KIRIBATI","NIUE",
+    "SVALBARD","TRISTAN DA CUNHA","PITCAIRN ISLAND",
+    "TOKELAU","BOUVET ISLAND","JAN MAYEN","THE AZORES",
+    "FAROE ISLANDS","ISLE OF MAN","WALLIS AND FUTUNA",
+    "SAINT PIERRE AND MIQUELON","TURKS AND CAICOS",
+    "DIEGO GARCIA","HEARD ISLAND","MACQUARIE ISLAND",
+    "SOME GUY NAMED DAVE","GREG FROM ACCOUNTING","A MEDIUM-SIZED ROCK",
+    "THE SECOND SADDEST CLOWN","YOUR MOM'S COUSIN","FINLAND",
+    "SIR LOIN OF BEEF","MOIST TOWELETTE","A FIRMLY-WORDED LETTER",
+    "THE COLOR BEIGE","TUESDAY","SEVENTEEN","THE VOID",
+    "AGGRESSIVE VIBES","THE THIRD OPTION","A SENSIBLE HAT",
+    "THE GHOST OF CHRISTMAS MEAT","SOMEBODY ELSE'S PROBLEM",
+    "AN UNREMARKABLE TUESDAY","THE BEIGE AREA"
+];
+
+function randomLie() {
+	var pick = HOUSE_LIES[Math.floor(Math.random() * HOUSE_LIES.length)];
+	$("#mylie").val(pick).focus();
 }
 
 function selectlie(me){
@@ -674,7 +780,8 @@ function showquestion(q){
 	showonly("#enterliediv");
 	$("#mylie").show();
 	$("#liebtn").show();
-		$("#mylie").val("");
+	$("#randomliebtn").show();
+	$("#mylie").val("");
 	document.getElementById("questionh").innerHTML = q;
 }
 
@@ -734,6 +841,7 @@ function updateTimerDisplay() {
 		<h1 id="questionh">Enter your lie!</h1>
 		<div data-role="fieldcontain">
 			<input type="text" id="mylie" value="" placeholder="Type your lie here…" />
+			<a data-role="button" id="randomliebtn" onclick="randomLie()" data-inline="true">🎲 Lie for me</a>
 			<a data-role="button" id="liebtn" onclick="lie()" data-inline="true">Submit lie</a>
 		</div>
 	</div>
