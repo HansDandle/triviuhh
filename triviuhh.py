@@ -536,6 +536,9 @@ async def ws_handler(request):
 
                 if command == 'loginname':
                     if game.add_player(ws, parameter):
+                        # Push state to the new player directly so they don't
+                        # have to wait for the next broadcast event
+                        await ws.send_str(json.dumps(game.get_gamestate()))
                         update = 'viewers'
 
                 elif command == 'forcestart':

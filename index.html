@@ -8,6 +8,15 @@
 	<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 	<script src="/websocket_ip.js"></script>
 	<script src="/src/jquery-1.11.3.min.js"></script>
+	<script>
+	  // Must run before jQuery Mobile loads to disable iframe-hostile features
+	  $(document).on('mobileinit', function() {
+	    $.mobile.ajaxEnabled       = false;
+	    $.mobile.linkBindingEnabled = false;
+	    $.mobile.hashListeningEnabled = false;
+	    $.mobile.pushStateEnabled  = false;
+	  });
+	</script>
 	<script src="/src/jquery.mobile-1.4.5.min.js"></script>
 	<meta charset="utf-8">
 <style>
